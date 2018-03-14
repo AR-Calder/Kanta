@@ -9,20 +9,20 @@
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar_top"
-        android:layout_height="46dp"
         android:layout_width="match_parent"
-        android:minHeight="?attr/actionBarSize"
-        android:background="@color/colorBackgroundDark">
+        android:layout_height="46dp"
+        android:background="@color/colorBackgroundDark"
+        android:minHeight="?attr/actionBarSize">
 
         <TextView
+            android:id="@+id/toolbar_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:fontFamily="sans-serif"
             android:text="@string/toolbar_title"
             android:textColor="@color/colorTitleTextDark"
-            android:textSize="17sp"
-            android:layout_gravity="center"
-            android:id="@+id/toolbar_title" />
+            android:textSize="17sp" />
 
         <Button
             android:id="@+id/btn_settings"
