@@ -9,10 +9,10 @@
     <color name="colorAccentDark">#f4cb42</color>
 
     <color name="colorBackgroundLight">#dddddd</color>
-    <color name="colorBackgroundDark">#111111</color>
+    <color name="colorBackgroundDark">#171717</color>
     <color name="colorBackgroundLight2">#cccccc</color>
     <color name="colorBackgroundDark2">#222222</color>
-    <color name="AmoledBlack">#000000</color>
+    <color name="AmoledBlack">#101010</color>
 
     <color name="colorTitleTextDark">#d0d0d0</color>
     <color name="colorSubtitleTextDark">#c0c0c0</color>

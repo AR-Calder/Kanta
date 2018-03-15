@@ -1,6 +1,5 @@
 package uk.arcalder.Kanta;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -26,10 +25,24 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         BottomNavigationViewHelper.disableShiftMode(navigation);
         navigation.setOnNavigationItemSelectedListener(this);
 
-        LoadToolbarFragment(new TitlebarFragment());
+        loadToolbarFragment(new TitlebarFragment());
+        loadListFragment(new AlbumListFragment());
+        loadMiniPlayerFragment(new MiniPlayerFragment());
 
     }
 
+    // Mini Player Fragments
+    private void loadMiniPlayerFragment(Fragment mp_frag) {
+        if (mp_frag != null) {
+
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container_player, mp_frag)
+                    .commit();
+        }
+    }
+
+    // List fragments
     private boolean loadListFragment(ListFragment list_frag) {
         if (list_frag != null) {
 
@@ -43,7 +56,8 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
     }
 
-    private boolean LoadToolbarFragment(Fragment toolbar_frag) {
+    // Toolbar / search bar fragments
+    private boolean loadToolbarFragment(Fragment toolbar_frag) {
         if (toolbar_frag != null) {
             getSupportFragmentManager()
                     .beginTransaction()
@@ -64,27 +78,27 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             case R.id.navigation_home:
                 // Home
                 fragment = new SongListFragment();
-                LoadToolbarFragment(new TitlebarFragment());
+                loadToolbarFragment(new TitlebarFragment());
                 break;
             case R.id.navigation_dashboard:
                 // Browse
-                Intent i = new Intent(this, BigPlayerActivity.class);
-                startActivity(i);
+                fragment = new AlbumListFragment();
+                loadToolbarFragment(new TitlebarFragment());
                 break;
             case R.id.navigation_search:
                 // Search
                 fragment = new SongListFragment();
-                LoadToolbarFragment(new SearchFragment());
+                loadToolbarFragment(new SearchFragment());
                 break;
             case R.id.navigation_notifications:
                 // Library
                 fragment = new AlbumListFragment();
-                LoadToolbarFragment(new TitlebarFragment());
+                loadToolbarFragment(new TitlebarFragment());
                 break;
             case R.id.navigation_library:
                 // Settings
                 fragment = new SongListFragment();
-                LoadToolbarFragment(new TitlebarFragment());
+                loadToolbarFragment(new TitlebarFragment());
                 break;
         }
 
