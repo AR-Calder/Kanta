@@ -13,9 +13,9 @@
 
     <TextView
         android:id="@android:id/empty"
-        android:textColor="@color/colorSubtitleTextDark"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorSubtitleTextDark">
     </TextView>
 
 </LinearLayout>

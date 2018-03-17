@@ -35,6 +35,7 @@ Bugs
 
 TODO
 ----
+- If fragment of same type is already open do not open another.
 - Setup Content Provider
 - Allow theme switching
 - Save settings

@@ -15,7 +15,6 @@
         android:layout_height="46dp"
         android:minHeight="?attr/actionBarSize" />
 
-
     <!--Main body-->
     <FrameLayout
         android:id="@+id/fragment_container_main"
