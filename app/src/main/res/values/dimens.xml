@@ -5,4 +5,11 @@
     <!--Prevent Nav bar from entering shift mode with more than 3 icons-->
     <dimen name="design_bottom_navigation_text_size" tools:override="true">10sp</dimen>
     <dimen name="design_bottom_navigation_active_text_size" tools:override="true">10sp</dimen>
+
+    <dimen name="small_text">12sp</dimen>
+    <dimen name="medium_text">15sp</dimen>
+    <dimen name="large_text">18sp</dimen>
+    <dimen name="xlarge_text">25dp</dimen>
+    <dimen name="xxlarge_text">40dp</dimen>
+    <dimen name="xxxlarge_text">100dp</dimen>
 </resources>

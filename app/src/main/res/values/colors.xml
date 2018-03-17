@@ -4,9 +4,9 @@
     <color name="colorPrimaryLight">#191414</color>
     <color name="colorPrimaryDark">#191414</color>
 
-    <color name="colorAccent">#f4cb42</color>
+    <color name="a2">#f4cb42</color>
     <color name="colorAccentLight">#f4b342</color>
-    <color name="colorAccentDark">#f4cb42</color>
+    <color name="colorAccent">#f4cb42</color>
 
     <color name="colorBackgroundLight">#dddddd</color>
     <color name="colorBackgroundDark">#171717</color>
@@ -15,6 +15,7 @@
     <color name="AmoledBlack">#101010</color>
 
     <color name="colorTitleTextDark">#d0d0d0</color>
+    <color name="colorTextBackground">#606060</color>
     <color name="colorSubtitleTextDark">#c0c0c0</color>
     <color name="colorTitleTextLight">#000000</color>
     <color name="colorSubtitleTextLight">#111111</color>

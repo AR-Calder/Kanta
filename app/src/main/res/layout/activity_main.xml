@@ -5,24 +5,18 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorAccentDark"
+    android:background="@color/AmoledBlack"
     tools:context="uk.arcalder.Kanta.MainActivity">
 
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/toolbar_top"
+    <!--Toolbar-->
+    <FrameLayout
+        android:id="@+id/fragment_container_toolbar"
         android:layout_width="match_parent"
         android:layout_height="46dp"
-        android:background="@color/colorBackgroundDark"
-        android:minHeight="?attr/actionBarSize">
-
-        <FrameLayout
-            android:id="@+id/fragment_container_toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        android:minHeight="?attr/actionBarSize" />
 
 
-    </android.support.v7.widget.Toolbar>
-
+    <!--Main body-->
     <FrameLayout
         android:id="@+id/fragment_container_main"
         android:layout_width="0dp"
@@ -30,8 +24,10 @@
         app:layout_constraintBottom_toTopOf="@+id/fragment_container_player"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar_top" />
+        app:layout_constraintTop_toBottomOf="@+id/fragment_container_toolbar" />
 
+
+    <!--Player-->
     <FrameLayout
         android:id="@+id/fragment_container_player"
         android:layout_width="0dp"
@@ -42,6 +38,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/fragment_container_main" />
 
+    <!--Navigation Bar-->
     <android.support.design.widget.BottomNavigationView
         android:id="@+id/navigationBarBottom"
         android:layout_width="0dp"

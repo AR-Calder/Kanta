@@ -4,7 +4,7 @@
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="title_library">Library</string>
-    <string name="title_search">Search</string>
+    <string name="title_search">SEARCH</string>
     <string name="top_of_year"><![CDATA[TOP OF <YEAR>]]></string>
     <string name="top_all_time">TOP ALL TIME</string>
     <string name="recently_played">RECENTLY PLAYED</string>
@@ -13,6 +13,10 @@
     <string name="album_list">ALBUM LIST</string>
     <string name="bigplayeractivity">BigPlayerActivity</string>
     <string name="toolbar_title">Home</string>
+
+    <string name="search">…</string>
+    <string name="current_artist">Artist</string>
+    <string name="current_song">song</string>
 
     <string-array name="songs">
         <item>Black Panther</item>
@@ -35,8 +39,8 @@
         <item>Album2</item>
         <item>Album3</item>
         <item>Album3</item>
-        <item>Not a duplicate, I'm just lazy</item>
-        <item>Album3</item>
+        <item>Not duplicate issue</item>
+        <item>I'm just lazy</item>
         <item>Album3</item>
         <item>Album3</item>
         <item>Album3</item>
@@ -123,8 +127,6 @@
     <string name="pref_ringtone_silent">Silent</string>
 
     <string name="pref_title_vibrate">Vibrate</string>
-    <string name="search">Search</string>
-    <string name="current_artist">Artist</string>
-    <string name="current_song">song</string>
+
 
 </resources>
