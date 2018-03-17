@@ -24,7 +24,8 @@ public class AlbumListFragment extends ListFragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        ArrayAdapter adapter = ArrayAdapter.createFromResource(getActivity(), R.array.albums, android.R.layout.simple_list_item_1);
+        //ArrayAdapter adapter = ArrayAdapter.createFromResource(getActivity(), R.array.albums, android.R.layout.simple_list_item_1);
+        ArrayAdapter adapter = ArrayAdapter.createFromResource(getActivity(), R.array.albums, R.layout.song_list_item);
         setListAdapter(adapter);
     }
 }

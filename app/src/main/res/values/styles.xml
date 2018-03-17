@@ -1,24 +1,130 @@
 <resources>
+    <!-- ~#######################~ -->
+    <!-- ~Dark Application Theme ~ -->
+    <!-- ~#######################~ -->
 
-    <!-- Base application theme. -->
-    <style name="DarkTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="android:colorPrimary">@color/colorPrimaryDark</item>
-        <item name="android:colorAccent">@color/colorAccentDark</item>
-        <item name="android:colorBackground">@color/AmoledBlack</item>
-        <item name="android:textColor">@color/colorTitleTextDark</item>
+    <!-- Core colors -->
+    <style name="DarkTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Main Navigation items -->
+        <item name="android:colorPrimary">#d0d0d0</item>
+        <item name="android:colorPrimaryDark">#a0a0a0</item>
+        <!-- Absolute background and absolute foreground -->
+        <item name="android:colorBackground">#101010</item>
+        <item name="android:colorForeground">#606060</item>
 
+        <!-- Nav Panel background and foreground -->
+        <item name="android:panelColorBackground">#171717</item>
+        <item name="android:panelColorForeground">#222222</item>
+        <item name="android:drawableTint">#d0d0d0</item>
+
+        <!-- Accent Color -->
+        <item name="android:colorAccent">#f4b342</item>
+        <item name="android:solidColor">#f4b342</item>
 
     </style>
 
-    <style name="LightTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="android:colorPrimary">@color/colorPrimaryLight</item>
-        <item name="android:colorAccent">@color/colorAccentLight</item>
-        <item name="android:colorBackground">@color/colorBackgroundLight</item>
+
+    <!-- Light text for dark themes -->
+    <style name="LittleTitleTextLight">
+        <item name="android:textSize">@dimen/small_text</item>
         <item name="android:textColor">@color/colorTitleTextLight</item>
-
-
     </style>
 
+    <style name="LittleSubtitleTextLight">
+        <item name="android:textSize">@dimen/small_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <style name="MediumTitleTextLight">
+        <item name="android:textSize">@dimen/medium_text</item>
+        <item name="android:textColor">@color/colorTitleTextLight</item>
+    </style>
+
+    <style name="MediumSubtitleTextLight">
+        <item name="android:textSize">@dimen/medium_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <style name="LargeTitleTextLight">
+        <item name="android:textSize">@dimen/large_text</item>
+        <item name="android:textColor">@color/colorTitleTextLight</item>
+    </style>
+
+    <style name="LargeSubtitleTextLight">
+        <item name="android:textSize">@dimen/large_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <style name="XLargeTitleTextLight">
+        <item name="android:textSize">@dimen/xlarge_text</item>
+        <item name="android:textColor">@color/colorTitleTextLight</item>
+    </style>
+
+    <style name="XLargeSubtitleTextLight">
+        <item name="android:textSize">@dimen/xlarge_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <style name="XXLargeTitleTextLight">
+        <item name="android:textSize">@dimen/xxlarge_text</item>
+        <item name="android:textColor">@color/colorTitleTextLight</item>
+    </style>
+
+    <style name="XXLargeSubtitleTextLight">
+        <item name="android:textSize">@dimen/xxlarge_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <style name="XXXLargeTitleTextLight">
+        <item name="android:textSize">@dimen/xxxlarge_text</item>
+        <item name="android:textColor">@color/colorTitleTextLight</item>
+    </style>
+
+    <style name="XXXLargeSubtitleTextLight">
+        <item name="android:textSize">@dimen/xxxlarge_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextLight</item>
+    </style>
+
+    <!-- ~#######################~ -->
+    <!-- ~Light Application Theme~ -->
+    <!-- ~#######################~ -->
+
+    <!-- Core colors -->
+    <style name="LightTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Main Navigation items -->
+        <item name="android:colorPrimary">#101010</item>
+        <item name="android:colorPrimaryDark">#606060</item>
+
+        <!-- Absolute background and absolute foreground -->
+        <item name="android:colorBackground">#b0b9d2</item>
+        <item name="android:colorForeground">#9099d2</item>
+
+        <!-- Nav Panel background and foreground -->
+        <item name="android:panelColorBackground">#171717</item>
+        <item name="android:panelColorForeground">#222222</item>
+
+        <!-- Accent Color -->
+        <item name="android:colorAccent">#f4b342</item>
+    </style>
+
+    <!-- Dark text for light themes TODO FINISH THIS-->
+    <style name="LittleTitleTextDark">
+        <item name="android:textSize">@dimen/small_text</item>
+        <item name="android:textColor">@color/colorTitleTextDark</item>
+    </style>
+
+    <style name="LittleSubtitleTextDark">
+        <item name="android:textSize">@dimen/small_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextDark</item>
+    </style>
+
+    <style name="MediumTitleText">
+        <item name="android:textSize">@dimen/medium_text</item>
+        <item name="android:textColor">@color/colorTitleTextDark</item>
+    </style>
+
+    <style name="MediumSubtitleText">
+        <item name="android:textSize">@dimen/medium_text</item>
+        <item name="android:textColor">@color/colorSubtitleTextDark</item>
+    </style>
 </resources>
