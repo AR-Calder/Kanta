@@ -17,12 +17,12 @@ import java.util.HashMap;
 
 public class MusicProvider {
     private ArrayList<Song> songs;
-
+    private ArrayList<Album> albums;
     private ArrayList<Playlist> playlists;
 
     private HashMap<String, String> GENRE_ID_TO_GENRE_NAME;
-
     private HashMap<String, String> SONG_ID_TO_GENRE_NAME;
+    private HashMap<Long, Song> SONG_ID_TO_SONG_OBJ;
 
     // TODO!! ALBUM_ID_TO_SONG_IDS (MULTIMAP)
 
@@ -53,7 +53,8 @@ public class MusicProvider {
 
 
         // Where to scan for files (for each)
-        Uri audioUri;
+        Uri songUri;
+        Uri albumUri;
         Uri genreUri;
         Uri playlistUri;
 
@@ -64,48 +65,61 @@ public class MusicProvider {
         isBusyImporting = true;
 
         if (source.equals("INTERNAL")) {
-            audioUri = MediaStore.Audio.Media.INTERNAL_CONTENT_URI;
+            songUri = MediaStore.Audio.Media.INTERNAL_CONTENT_URI;
+            albumUri = MediaStore.Audio.Albums.INTERNAL_CONTENT_URI;
             genreUri = MediaStore.Audio.Genres.INTERNAL_CONTENT_URI;
             playlistUri = MediaStore.Audio.Playlists.INTERNAL_CONTENT_URI;
         } else { // TODO invert this so it defaults to internal if source is invalid
-            audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            albumUri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
             genreUri = MediaStore.Audio.Genres.EXTERNAL_CONTENT_URI;
             playlistUri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
         }
 
         // Used to make file system queries
         // REFER TO https://www.androiddesignpatterns.com/2012/06/content-resolvers-and-content-providers.html
-        ContentResolver contentResolver = context.getContentResolver();
+        final ContentResolver contentResolver = context.getContentResolver();
 
         // Used to provide read-write access to results returned by fs query
         // https://developer.android.com/reference/android/database/Cursor.html
         //Cursor cursor;
 
         // For getting Metadata from database
+
         // Song
-        String SONG_ID = android.provider.MediaStore.Audio.Media._ID;
-        String SONG_TITLE = android.provider.MediaStore.Audio.Media.TITLE;
-        String SONG_ARTIST = android.provider.MediaStore.Audio.Media.ARTIST;
-        String SONG_ALBUM = android.provider.MediaStore.Audio.Media.ALBUM;
-        String SONG_YEAR = android.provider.MediaStore.Audio.Media.YEAR;
-        String SONG_URL = android.provider.MediaStore.Audio.Media.DATA;
-        String SONG_TRACK_NUM = android.provider.MediaStore.Audio.Media.TRACK;
-        String SONG_DURATION = android.provider.MediaStore.Audio.Media.DURATION;
+        String SONG_ID          = MediaStore.Audio.Media._ID;
+        String SONG_TITLE       = MediaStore.Audio.Media.TITLE;
+        String SONG_ARTIST      = MediaStore.Audio.Media.ARTIST;
+        String SONG_ALBUM       = MediaStore.Audio.Media.ALBUM;
+        String SONG_YEAR        = MediaStore.Audio.Media.YEAR;
+        String SONG_URL         = MediaStore.Audio.Media.DATA;
+        String SONG_TRACK_NUM   = MediaStore.Audio.Media.TRACK;
+        String SONG_DURATION    = MediaStore.Audio.Media.DURATION;
+
+        // Album
+        String ALBUM_ID         = MediaStore.Audio.Artists.Albums.ALBUM_ID;
+        String ALBUM_NAME       = MediaStore.Audio.Artists.Albums.ALBUM;
+        String ALBUM_SONG_ID    = MediaStore.Audio.Media.ALBUM_ID;
+
         // Genre
-        String GENRE_ID = MediaStore.Audio.Genres._ID;
-        String GENRE_NAME = MediaStore.Audio.Genres.NAME;
+        String GENRE_ID         = MediaStore.Audio.Genres._ID;
+        String GENRE_NAME       = MediaStore.Audio.Genres.NAME;
+
         // Playlist
-        String PLAYLIST_ID = MediaStore.Audio.Playlists._ID;
-        String PLAYLIST_NAME = MediaStore.Audio.Playlists.NAME;
+        String PLAYLIST_ID      = MediaStore.Audio.Playlists._ID;
+        String PLAYLIST_NAME    = MediaStore.Audio.Playlists.NAME;
         String PLAYLIST_SONG_ID = MediaStore.Audio.Playlists.Members.AUDIO_ID;
+
+
 
         // Create genreId:genreName HashMap
         // Genres (apparently) by default return an ID3v1 value which is pretty worthless unless we know what they are
         // stackoverflow suggestion was to map genre id to genre name
         // https://stackoverflow.com/questions/32337949/how-to-get-songs-and-other-media-from-an-album-id/35746126#35746126
 
-        GENRE_ID_TO_GENRE_NAME = new HashMap<String, String>();
-        SONG_ID_TO_GENRE_NAME = new HashMap<String, String>();
+        GENRE_ID_TO_GENRE_NAME = new HashMap<>();
+        SONG_ID_TO_GENRE_NAME = new HashMap<>();
+        SONG_ID_TO_SONG_OBJ = new HashMap<>();
         // TODO!! ALBUM_ID_TO_SONG_IDS (MULTIMAP)
 
         // Columns for genre query
@@ -143,9 +157,9 @@ public class MusicProvider {
         // Columns for song query
         String[] songQueryColumns = {SONG_ID, SONG_TITLE, SONG_ARTIST, SONG_ALBUM, SONG_YEAR, SONG_URL, SONG_TRACK_NUM, SONG_DURATION};
 
-        // This took fucking ages to find https://developer.android.com/reference/android/provider/MediaStore.Audio.AudioColumns.html#IS_MUSIC
+        // This took bloody ages to find https://developer.android.com/reference/android/provider/MediaStore.Audio.AudioColumns.html#IS_MUSIC
         // Add this to query to select only music files "MediaStore.Audio.Media.IS_MUSIC = 1"
-        try (Cursor cursor = contentResolver.query(audioUri, songQueryColumns, MediaStore.Audio.Media.IS_MUSIC + "=1", null, null)) {
+        try (Cursor cursor = contentResolver.query(songUri, songQueryColumns, MediaStore.Audio.Media.IS_MUSIC + "=1", null, null)) {
             while (cursor.moveToNext()) {
                 // Import song metadata
                 Song thisSong = new Song(
@@ -165,17 +179,19 @@ public class MusicProvider {
                 String thisGenreName = GENRE_ID_TO_GENRE_NAME.get(thisGenreId);
                 thisSong.setGenre(thisGenreName);
 
+                // Map song ID to this song object for easy use later;
+                SONG_ID_TO_SONG_OBJ.put(thisSong.getId(), thisSong);
+
                 // Add to song list
                 songs.add(thisSong);
             }
-            // Once again shouldn't need to close thx to "try with res"
+            // Once again shouldn't need to close thanks to "try with res"
         } catch (Exception e) {
             Toast.makeText(context, "Error importing songs: " + e, Toast.LENGTH_SHORT).show();
         }
 
         // Columns for playlists query
         String[] playlistQueryColumns = {PLAYLIST_ID, PLAYLIST_NAME};
-
         try (Cursor playlistsCursor = contentResolver.query(playlistUri, playlistQueryColumns, null, null, null)) {
             while (playlistsCursor.moveToNext()) {
                 Playlist thisPlaylist = new Playlist(
@@ -202,6 +218,40 @@ public class MusicProvider {
             }
         }
 
+        String[] albumQueryColumns = {ALBUM_ID, ALBUM_NAME};
+        try (Cursor thisAlbumCursor = contentResolver.query(albumUri, albumQueryColumns, null, null, null)) {
+            while (thisAlbumCursor.moveToNext()) {
+                // Create Album
+                Album thisAlbum = new Album(
+                        thisAlbumCursor.getLong(thisAlbumCursor.getColumnIndex(ALBUM_ID)),
+                        thisAlbumCursor.getString(thisAlbumCursor.getColumnIndex(ALBUM_NAME))
+                );
+
+                String[] albumSongColumns = {
+                        MediaStore.Audio.Media._ID,
+                        MediaStore.Audio.Media.TITLE
+                };
+
+                String where = MediaStore.Audio.Media.ALBUM_ID + "=?";
+
+                // Find song IDs associated with album
+                // from songs return songs where album_id is thisAlbum.getId(), ordered by ID
+                ArrayList<Long> songIds = new ArrayList<>();
+                try (Cursor thisAlbumSongCursor = contentResolver.query(songUri, albumSongColumns, where, new String[]{thisAlbum.getId().toString()}, MediaStore.Audio.Media._ID)){
+                    while(thisAlbumSongCursor.moveToNext()){
+                        songIds.add(thisAlbumSongCursor.getLong(thisAlbumSongCursor.getColumnIndex(ALBUM_SONG_ID)));
+                    }
+                }
+
+                // Add song IDs to album
+                thisAlbum.setAlbumSongs(songIds);
+
+                // Add this album to album list
+                albums.add(thisAlbum);
+            }
+
+
+        }
         // Import is finished (no longer importing and songs should have now been imported)
         setBoolSongsImported(true);
         setBoolBusyImporting(false);
@@ -213,6 +263,23 @@ public class MusicProvider {
         ArrayList<Song> songList = new ArrayList<Song>();
         songList.addAll(songs);
         return songList;
+    }
+
+    // ~# GET SONG BY ID #~
+    public Song getSongById(Long id){
+        return SONG_ID_TO_SONG_OBJ.get(id);
+    }
+
+    // ~# GET SONGS BY IDs #~
+    public ArrayList<Song> getSongsById(ArrayList<Long> IDs){
+        ArrayList<Song> songsById = new ArrayList<>();
+        for (Long id : IDs){
+            Song song = SONG_ID_TO_SONG_OBJ.get(id);
+            if ( song != null){
+                songsById.add(song);
+            }
+        }
+        return songsById;
     }
 
     // ~# GET SONGS BY ARTIST #~
@@ -227,10 +294,10 @@ public class MusicProvider {
     }
 
     // ~# GET SONGS BY ALBUM #~
-    public ArrayList<Song> getSongsByAlbum(String ablumName) {
+    public ArrayList<Song> getSongsByAlbum(String albumName) {
         ArrayList<Song> songList = new ArrayList<Song>();
         for (Song song : songs) {
-            if (song.getAlbum().equals(ablumName)) {
+            if (song.getAlbum().equals(albumName)) {
                 songList.add(song);
             }
         }
@@ -249,4 +316,14 @@ public class MusicProvider {
     }
 
     // TODO get albums(by artist, song, genre), genres, artist(by song, album)
+
+    // ~# GET ALBUMS BY ARTIST #~
+    public ArrayList<Long> getAlbumsByArtist(String artistName){
+        ArrayList<Long> albumIds = new ArrayList<>();
+
+        // TODO album id query
+
+        return albumIds;
+
+    }
 }
