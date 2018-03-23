@@ -16,7 +16,7 @@ Currently you will have to build the APK from source, this will change at some p
 Contribute
 -----------
 
-- [Issue Traker](github.com/AR-Calder/kanta/issues)
+- [Issue Tracker](github.com/AR-Calder/kanta/issues)
 - [Source Code](github.com/AR-Calder/kanta)
 
 Support
@@ -31,7 +31,7 @@ The project is licensed under the "I've not researched these enough to know" lic
 
 Bugs
 -----
-- Text in ListView is always #000000 regardless of set theme
+- Doesn't actually play any music
 
 TODO
 ----
