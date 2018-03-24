@@ -13,7 +13,7 @@ import java.util.ArrayList;
  * Created by arcalder on 23/03/2018.
  */
 
-public class AudioProvider {
+public class MusicProvider {
     /*REQUIRES:
     * SOURCE        STRING{INTERNAL || EXTERNAL}        COMMON{EXTERNAL}        Which type of storage to search for content
     * DEBUG         BOOLEAN{true || false}              COMMON{FALSE}           Enables or disables debugging messages*/
@@ -39,7 +39,7 @@ public class AudioProvider {
 
 
     // CONSTRUCTOR
-    public AudioProvider(Context context, String SOURCE, Boolean DEBUG) {
+    public MusicProvider(Context context, String SOURCE, Boolean DEBUG) {
         this.contentResolver = context.getContentResolver();
         this.SOURCE = SOURCE;
         this.DEBUG = DEBUG;
@@ -48,6 +48,22 @@ public class AudioProvider {
 
     }
 
+    // -----------------------------------------------------------------ALL-------------------------------------------------------------------------
+
+    // OFFSET/LIMIT HELPER
+    public String getLimitOrOffset(int limit, int offset, String Query){
+        String finalQuery = Query;
+        if (limit > 0 && offset >0){
+            finalQuery += " LIMIT " + limit + " OFFSET " + offset;
+        }
+        else if (limit > 0){
+            finalQuery += " LIMIT " + limit;
+        }
+        return finalQuery;
+    }
+
+    // BASED ON :
+    // https://www.petefreitag.com/item/451.cfm
 
     // -----------------------------------------------------------------SONGS-------------------------------------------------------------------------
 
@@ -87,13 +103,15 @@ public class AudioProvider {
 };
 
     // QUERY HELPER
-    private ArrayList<Song> songQuery(int start, int end, @NonNull String songSELECTION) {
+    private ArrayList<Song> songQuery(int limit, int offset, @NonNull String songSELECTION) {
         // container
         ArrayList<Song> songList = new ArrayList<>();
 
+        songSELECTION = getLimitOrOffset(limit, offset, songSELECTION);
+
         // Query
         try (Cursor songCursor = this.contentResolver.query(genreUri, songColumns, songSELECTION, null, MediaStore.Audio.Genres.Members.TITLE)) {
-            for (songCursor.moveToPosition(start); !songCursor.isAfterLast() && start != end; songCursor.moveToNext(), start++) {
+            for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
                 Song song = new Song(
                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.TITLE_KEY)),
                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.TITLE)),
@@ -126,14 +144,14 @@ public class AudioProvider {
     }
 
     // TODO GET N SONGS (FROM INDEX TO INDEX)
-    public ArrayList<Song> getNSongs(int start, int end) {
+    public ArrayList<Song> getNSongs(int limit, int offset) {
         ArrayList<Song> songList = new ArrayList<>();
 
         // Only accept music files
         String songSELECTION = MediaStore.Audio.Genres.Members.IS_MUSIC + "=1";
 
         // By setting end to -1 it will loop until all songs have been found
-        return songQuery(start, end, songSELECTION);
+        return songQuery(limit, offset, songSELECTION);
     }
 
     // TODO GET SONG BY KEY TODO
@@ -225,13 +243,16 @@ public class AudioProvider {
 };
 
     // QUERY HELPER
-    private ArrayList<Album> albumQuery(int start, int end, @NonNull String albumSELECTION) {
+    private ArrayList<Album> albumQuery(int limit, int offset, @NonNull String albumSELECTION) {
         // container
         ArrayList<Album> albumList = new ArrayList<>();
 
+        // Attach limit and/or offset to query
+        albumSELECTION = getLimitOrOffset(limit, offset, albumSELECTION);
+
         // Query
         try (Cursor albumCursor = this.contentResolver.query(genreUri, albumColumns, albumSELECTION, null, MediaStore.Audio.Genres.Members.ALBUM)) {
-            for (albumCursor.moveToPosition(start); !albumCursor.isAfterLast() && start != end; albumCursor.moveToNext(), start++) {
+            for (albumCursor.moveToFirst(); !albumCursor.isAfterLast(); albumCursor.moveToNext()) {
                 Album album = new Album(
                 albumCursor.getString(albumCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ALBUM_KEY)),
                 albumCursor.getString(albumCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ALBUM))
@@ -314,13 +335,16 @@ public class AudioProvider {
 };
 
     // QUERY HELPER
-    private ArrayList<Artist> artistQuery(int start, int end, @NonNull String albumSELECTION) {
+    private ArrayList<Artist> artistQuery(int limit, int offset, @NonNull String artistSELECTION) {
         // container
         ArrayList<Artist> artists = new ArrayList<>();
 
+        // Attach limit and/or offset to query
+        artistSELECTION = getLimitOrOffset(limit, offset, artistSELECTION);
+
         // Query
-        try (Cursor artistCursor = this.contentResolver.query(genreUri, artistColumns, albumSELECTION, null, MediaStore.Audio.Genres.Members.ALBUM)) {
-            for (artistCursor.moveToPosition(start); !artistCursor.isAfterLast() && start != end; artistCursor.moveToNext(), start++) {
+        try (Cursor artistCursor = this.contentResolver.query(genreUri, artistColumns, artistSELECTION, null, MediaStore.Audio.Genres.Members.ALBUM)) {
+            for (artistCursor.moveToFirst(); !artistCursor.isAfterLast(); artistCursor.moveToNext()) {
                 Artist artist = new Artist(
                 artistCursor.getString(artistCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ARTIST_KEY)),
                 artistCursor.getString(artistCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ARTIST))
@@ -372,19 +396,22 @@ public class AudioProvider {
 
     // COLUMN HELPER
     private String[] genreColumns = {
-    // See Song.class for member explanation
-    MediaStore.Audio.Genres.Members.GENRE_ID,
-            "1" //GENRE NAME? TODO REQUIRES FURTHER TESTING
-};
+        // See Song.class for member explanation
+        MediaStore.Audio.Genres.Members.GENRE_ID,
+        "1" //GENRE NAME? TODO REQUIRES FURTHER TESTING
+    };
 
     // QUERY HELPER
-    private ArrayList<Genre> genreQuery(int start, int end, @NonNull String genreSELECTION) {
+    private ArrayList<Genre> genreQuery(int limit, int offset, @NonNull String genreSELECTION) {
         // container
         ArrayList<Genre> genres = new ArrayList<>();
 
+        // Attach limit and/or offset to query
+        genreSELECTION = getLimitOrOffset(limit, offset, genreSELECTION);
+
         // Query
         try (Cursor genreCursor = this.contentResolver.query(genreUri, genreColumns, genreSELECTION, null, MediaStore.Audio.Genres.Members.GENRE_ID)) {
-            for (genreCursor.moveToPosition(start); !genreCursor.isAfterLast() && start != end; genreCursor.moveToNext(), start++) {
+            for (genreCursor.moveToFirst(); !genreCursor.isAfterLast(); genreCursor.moveToNext()) {
                 Genre genre = new Genre(
                 genreCursor.getLong(genreCursor.getColumnIndex(MediaStore.Audio.Genres.Members.GENRE_ID)),
                 genreCursor.getString(1)
@@ -426,13 +453,16 @@ public class AudioProvider {
     };
 
     // QUERY HELPER - FOR PLAYLIST ONLY
-    private ArrayList<Playlist> playlistQuery(int start, int end, @NonNull String playlistSELECTION) {
+    private ArrayList<Playlist> playlistQuery(int limit, int offset, @NonNull String playlistSELECTION) {
         // Container
         ArrayList<Playlist> playlists = new ArrayList<>();
 
+        // Attach limit and/or offset to query
+        playlistSELECTION = getLimitOrOffset(limit, offset, playlistSELECTION);
+
         //Query
         try (Cursor playlistCursor = this.contentResolver.query(playlistUri, playlistColumns, playlistSELECTION, null, MediaStore.Audio.Genres.Members.TITLE)) {
-            for (playlistCursor.moveToPosition(start); !playlistCursor.isAfterLast() && start != end; playlistCursor.moveToNext(), start++) {
+            for (playlistCursor.moveToFirst(); !playlistCursor.isAfterLast(); playlistCursor.moveToNext()) {
                 Playlist thisPlaylist = new Playlist(
                         playlistCursor.getLong(playlistCursor.getColumnIndex(MediaStore.Audio.Playlists._ID)),
                         playlistCursor.getString(playlistCursor.getColumnIndex(MediaStore.Audio.Playlists.NAME))
@@ -448,18 +478,21 @@ public class AudioProvider {
     }
 
     // QUERY HELPER - FOR SONGS IN PLAYLIST
-    private ArrayList<Song> playlistSongsQuery(int start, int end, @NonNull String playlistSELECTION, @NonNull String songSELECTION) {
+    private ArrayList<Song> playlistSongsQuery(int limit, int offset, @NonNull String playlistSELECTION, @NonNull String songSELECTION) {
         // containers
         ArrayList<Song> songs = new ArrayList<>();
 
+        // Attach limit and/or offset to query
+        songSELECTION = getLimitOrOffset(limit, offset, songSELECTION);
+
         // If selection returns multiple items I will still only use first item
-        Playlist playlist = playlistQuery(start, end, playlistSELECTION).get(0);
+        Playlist playlist = playlistQuery(-1, -1, playlistSELECTION).get(0);
 
         // QUERY
         // Location of songs within the playlist
         Uri thisPlaylistUri = MediaStore.Audio.Playlists.Members.getContentUri(SOURCE, playlist.getId());
         // I apologize for this block of code but the variables are only being used once; I don't feel the need to split them up.
-        try (Cursor thisPlaylistCursor = contentResolver.query(thisPlaylistUri, new String[]{MediaStore.Audio.Playlists.Members.TITLE_KEY}, MediaStore.Audio.Media.IS_MUSIC + "=1", null, MediaStore.Audio.Playlists.Members.DEFAULT_SORT_ORDER)) {
+        try (Cursor thisPlaylistCursor = contentResolver.query(thisPlaylistUri, new String[]{MediaStore.Audio.Playlists.Members.TITLE_KEY}, songSELECTION, null, MediaStore.Audio.Playlists.Members.DEFAULT_SORT_ORDER)) {
             while (thisPlaylistCursor.moveToNext()) {
                 // A true test of stacked queries
                 songs.add(getSongByKey(thisPlaylistCursor.getString(thisPlaylistCursor.getColumnIndex(MediaStore.Audio.Playlists.Members.TITLE_KEY))));
@@ -469,11 +502,37 @@ public class AudioProvider {
         return songs;
     }
 
-// TODO GET ALL PLAYLISTS
+    // TODO GET ALL PLAYLISTS
+    public ArrayList<Playlist> getAllPlaylists() {
 
-// TODO GET N PLAYLISTS
+        // No conditions, want everything
+        String playlistSELECTION = "";
 
-// TODO GET PLAYLIST BY ID
+        // By setting end to -1 it will loop until all results have been found
+        return playlistQuery(-1, -1, playlistSELECTION);
+    }
 
+
+    // TODO GET N PLAYLISTS
+    public ArrayList<Playlist> getNPlaylists(int limit, int offset) {
+
+        // No conditions, want to search all playlists
+        String playlistSELECTION = "";
+
+        // limit sets num of results to recieve back
+        // offset sets the row that will row to start reading from
+        return playlistQuery(limit, offset, playlistSELECTION);
+    }
+
+    // TODO GET PLAYLIST BY ID
+    public Playlist getPlaylistById(Long id) {
+
+        // No conditions, want to search all playlists
+        String playlistSELECTION = "";
+
+        // limit sets num of results to receive back
+        // offset sets the row that will row to start reading from
+        return playlistQuery(-1, -1, playlistSELECTION).get(0);
+    }
 }
 
