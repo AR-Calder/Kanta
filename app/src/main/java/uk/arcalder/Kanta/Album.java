@@ -1,43 +1,30 @@
 package uk.arcalder.Kanta;
 
-import java.util.ArrayList;
-
 /**
  * Created by arcalder on 23/03/18.
  */
 
 public class Album {
+    // DESCRIPTION:
+    // Stores individual Album objects containing all required metadata, other metadata can be fetched from Song
+    // Designed to be used with Song
 
-    // Unique id and name
-    private Long id;
-    private String name;
-    private ArrayList<Long> songs = new ArrayList<>(); // stores songs by id
+    // MEMBERS:
+    private String ALBUM_KEY = "";
+    private String ALBUM = "";
 
-    // Constructors
-    public Album(Long id, String name){
-        this.id = id;
-        this.name = name;
+    // CONSTRUCTOR
+    public Album(String ALBUM_KEY, String ALBUM) {
+        this.ALBUM_KEY = ALBUM_KEY;    // Key associated with album
+        this.ALBUM = ALBUM;        // Name of album
     }
 
-    public void setAlbumSongs(ArrayList<Long> ids){
-        this.songs = ids;
+    // GETTERS
+    public String getALBUM_KEY() {
+        return ALBUM_KEY;
     }
 
-    // Get Album ID
-    public Long getId() {
-        return id;
-    }
-
-    // Get Album Name
-    public String getName() {
-        return name;
-    }
-
-    // Get List of Song IDs for this Album
-    public ArrayList<Long> getSongsById() {
-        // Return a copy of the playlist in case we need to edit it
-        ArrayList<Long> thisAlbum = new ArrayList<>();
-        thisAlbum.addAll(songs);
-        return thisAlbum;
+    public String getALBUM() {
+        return ALBUM;
     }
 }
