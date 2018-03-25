@@ -35,9 +35,10 @@ Bugs
 
 TODO
 ----
-- If fragment of same type is already open do not open another.
-- Setup Content Provider
-- Allow theme switching
+- If fragment of same type is already open do not open another - DONE
+- Setup Content Provider - DONE
+- Allow theme switching - IMPOSSIBLE (for now)
+- Get
 - Save settings
 - Add/move/remove songs from queue
 
