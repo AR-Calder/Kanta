@@ -23,6 +23,7 @@ public class Song {
     private int TRACK = -1;
     private Long DURATION = -1L;
     private String DATA = "";
+    private boolean isCurrentSongFromQueue = false;
 
     // CONSTRUCTOR
     public Song(String TITLE_KEY, String TITLE, String ALBUM_KEY, String ALBUM, String ARTIST_KEY, String ARTIST, Long SONG_GENRE_ID, String SONG_GENRE_TITLE, int SONG_YEAR, int SONG_TRACK_NUM, Long SONG_DURATION, String SONG_DATA) {
@@ -87,5 +88,13 @@ public class Song {
 
     public String getDATA() {
         return DATA;
+    }
+
+    public boolean getIsCurrentSongFromQueue() {
+        return isCurrentSongFromQueue;
+    }
+
+    public void setIsCurrentSongFromQueue(boolean currentSongFromQueue) {
+        isCurrentSongFromQueue = currentSongFromQueue;
     }
 }
