@@ -11,11 +11,11 @@ public class Song {
 
 
     // MEMBERS:
-    private String TITLE_KEY = "";
+    private Long TITLE_ID = -1L;
     private String TITLE = "";
-    private String ALBUM_KEY = "";
+    private Long ALBUM_ID = -1L;
     private String ALBUM = "";
-    private String ARTIST_KEY = "";
+    private Long ARTIST_ID = -1L;
     private String ARTIST = "";
     private Long GENRE_ID = -1L;
     private String GENRE = "";
@@ -26,12 +26,12 @@ public class Song {
     private boolean isCurrentSongFromQueue = false;
 
     // CONSTRUCTOR
-    public Song(String TITLE_KEY, String TITLE, String ALBUM_KEY, String ALBUM, String ARTIST_KEY, String ARTIST, Long SONG_GENRE_ID, String SONG_GENRE_TITLE, int SONG_YEAR, int SONG_TRACK_NUM, Long SONG_DURATION, String SONG_DATA) {
-        this.TITLE_KEY = TITLE_KEY;        // Key associated with song title
+    public Song(Long TITLE_ID, String TITLE, Long ALBUM_ID, String ALBUM, Long ARTIST_ID, String ARTIST, Long SONG_GENRE_ID, String SONG_GENRE_TITLE, int SONG_YEAR, int SONG_TRACK_NUM, Long SONG_DURATION, String SONG_DATA) {
+        this.TITLE_ID = TITLE_ID;        // ID associated with song title
         this.TITLE = TITLE;            // Song Title
-        this.ALBUM_KEY = ALBUM_KEY;        // Key associated with Album
+        this.ALBUM_ID = ALBUM_ID;        // ID associated with Album
         this.ALBUM = ALBUM;            // Album Title
-        this.ARTIST_KEY = ARTIST_KEY;       // Key associated with Artist
+        this.ARTIST_ID = ARTIST_ID;       // ID associated with Artist
         this.ARTIST = ARTIST;           // Artist Title
         this.GENRE_ID = SONG_GENRE_ID;    // ID associated with Genre
         this.GENRE = SONG_GENRE_TITLE; // Genre Name
@@ -41,24 +41,24 @@ public class Song {
         this.DATA = SONG_DATA;        // Path to song
     }
 
-    public String getTITLE_KEY() {
-        return TITLE_KEY;
+    public Long getTITLE_ID() {
+        return TITLE_ID;
     }
 
     public String getTITLE() {
         return TITLE;
     }
 
-    public String getALBUM_KEY() {
-        return ALBUM_KEY;
+    public Long getALBUM_ID() {
+        return ALBUM_ID;
     }
 
     public String getALBUM() {
         return ALBUM;
     }
 
-    public String getARTIST_KEY() {
-        return ARTIST_KEY;
+    public Long getARTIST_ID() {
+        return ARTIST_ID;
     }
 
     public String getARTIST() {

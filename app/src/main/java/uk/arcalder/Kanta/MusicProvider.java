@@ -53,7 +53,7 @@ public class MusicProvider {
     // OFFSET/LIMIT HELPER
     public String getLimitOrOffset(int limit, int offset, String Query){
         String finalQuery = Query;
-        if (limit > 0 && offset >0){
+        if (limit > 0 && offset >=0){
             finalQuery += " LIMIT " + limit + " OFFSET " + offset;
         }
         else if (limit > 0){
@@ -85,14 +85,16 @@ public class MusicProvider {
     * */
 
     // COLUMN HELPER
+
+
     private String[] songColumns = {
             "1", // TODO Requires further testing
     // See Song.class for member explanation
     MediaStore.Audio.Genres.Members.TITLE_KEY,
     MediaStore.Audio.Genres.Members.TITLE,
-    MediaStore.Audio.Genres.Members.ALBUM_KEY,
+    MediaStore.Audio.Genres.Members.ALBUM_ID,
     MediaStore.Audio.Genres.Members.ALBUM,
-    MediaStore.Audio.Genres.Members.ARTIST_KEY,
+    MediaStore.Audio.Genres.Members.ARTIST_ID,
     MediaStore.Audio.Genres.Members.ARTIST,
     MediaStore.Audio.Genres.Members.GENRE_ID,
     // Can't get genre name this way

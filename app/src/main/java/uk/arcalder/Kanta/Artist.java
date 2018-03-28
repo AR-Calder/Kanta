@@ -10,18 +10,18 @@ public class Artist {
     // Designed to be used with Song
 
     // MEMBERS:
-    private String ARTIST_KEY = "";
+    private Long ARTIST_ID = -1L;
     private String ARTIST = "";
 
     // CONSTRUCTOR
-    public Artist(String ARTIST_KEY, String ARTIST) {
-        this.ARTIST_KEY = ARTIST_KEY;   // Key associated with artist
+    public Artist(Long ARTIST_ID, String ARTIST) {
+        this.ARTIST_ID = ARTIST_ID;   // Key associated with artist
         this.ARTIST = ARTIST;       // Name of Artist
     }
 
     // GETTERS
-    public String getARTIST_KEY() {
-        return ARTIST_KEY;
+    public Long getARTIST_ID() {
+        return ARTIST_ID;
     }
 
     public String getARTIST() {

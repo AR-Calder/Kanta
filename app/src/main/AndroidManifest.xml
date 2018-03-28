@@ -22,6 +22,8 @@
         <activity
             android:name="uk.arcalder.Kanta.SettingsActivity"
             android:label="@string/title_activity_settings" />
+
+        <service android:name=".MediaPlayerService" />
     </application>
 
 </manifest>

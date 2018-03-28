@@ -10,18 +10,18 @@ public class Album {
     // Designed to be used with Song
 
     // MEMBERS:
-    private String ALBUM_KEY = "";
+    private Long ALBUM_ID = -1L;
     private String ALBUM = "";
 
     // CONSTRUCTOR
-    public Album(String ALBUM_KEY, String ALBUM) {
-        this.ALBUM_KEY = ALBUM_KEY;    // Key associated with album
+    public Album(Long ALBUM_ID, String ALBUM) {
+        this.ALBUM_ID = ALBUM_ID;    // Key associated with album
         this.ALBUM = ALBUM;        // Name of album
     }
 
     // GETTERS
-    public String getALBUM_KEY() {
-        return ALBUM_KEY;
+    public Long getALBUM_ID() {
+        return ALBUM_ID;
     }
 
     public String getALBUM() {
