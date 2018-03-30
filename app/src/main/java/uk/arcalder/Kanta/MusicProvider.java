@@ -84,6 +84,9 @@ public class MusicProvider {
     *   SONG_DATA
     * */
 
+    // TODO 0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0
+    // TODO                     ALBUM, ARTIST, PLAYLIST
+
     // COLUMN HELPER
     private String[] songColumns = {
             "1", // TODO Requires further testing
@@ -95,7 +98,6 @@ public class MusicProvider {
     MediaStore.Audio.Genres.Members.ARTIST_KEY,
     MediaStore.Audio.Genres.Members.ARTIST,
     MediaStore.Audio.Genres.Members.GENRE_ID,
-    // Can't get genre name this way
     MediaStore.Audio.Genres.Members.YEAR,
     MediaStore.Audio.Genres.Members.TRACK,
     MediaStore.Audio.Genres.Members.DURATION,
@@ -113,7 +115,7 @@ public class MusicProvider {
         try (Cursor songCursor = this.contentResolver.query(genreUri, songColumns, songSELECTION, null, MediaStore.Audio.Genres.Members.TITLE)) {
             for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
                 Song song = new Song(
-                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.TITLE_KEY)),
+                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.TITLE_KEY)), // TODO USE AUDIO_ID
                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.TITLE)),
                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ALBUM_KEY)),
                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Genres.Members.ALBUM)),
