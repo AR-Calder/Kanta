@@ -10,12 +10,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.drm.DrmStore;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -25,7 +27,7 @@ import android.util.Log;
  * Created by Zynch on 29/03/2018.
  */
 
-public class MusicNotificationManager extends BroadcastReceiver {
+public class MusicNotificationManager{
 
     String TAG = MusicNotificationManager.class.getSimpleName();
 
@@ -38,20 +40,19 @@ public class MusicNotificationManager extends BroadcastReceiver {
     * https://www.youtube.com/watch?v=iIKxyDRjecU
     * */
 
-    // Intent actions
-    public static final String ACTION_PLAY  = "uk.arcalder.kanta.play";
-    public static final String ACTION_PAUSE = "uk.arcalder.kanta.pause";
-    public static final String ACTION_STOP  = "uk.arcalder.kanta.stop";
-    public static final String ACTION_PREV  = "uk.arcalder.kanta.prev";
-    public static final String ACTION_NEXT  = "uk.arcalder.kanta.next";
+    // Supported Actions
+    private final NotificationCompat.Action mPlayAction;
+    private final NotificationCompat.Action mPauseAction;
+    private final NotificationCompat.Action mNextAction;
+    private final NotificationCompat.Action mPrevAction;
 
-    private MusicService musicService;
+    private MusicPlayerService musicService;
     private MediaSessionCompat.Token sessionToken;          // https://www.youtube.com/watch?v=iIKxyDRjecU
-    private MediaControllerCompat musicController;          // Does the actually music controlling via mediaService
-    private PlaybackStateCompat playbackState;              // Playback state for a MediaSession. This includes a state like STATE_PLAYING,
+    private MediaControllerCompat musicController;          // the actual music controlling via MusicPlayerService
+    private PlaybackStateCompat playbackState;              // PlaybackInterface state for a MediaSession. This includes a state like STATE_PLAYING,
                                                             // - the current playback position, and the current control capabilities.
     private MediaMetadataCompat metadata;                   // Contains metadata about an item, such as the title, artist, etc.
-    private NotificationManager notificationManager;        // Does the actual notification managing for our media notifications
+    private NotificationManager mNotificationManager;        // Does the actual notification managing for our media notifications
 
     /*  As per https://stackoverflow.com/a/4812421/5496117 :
     *   "If you give the foreign application an Intent, it will execute your Intent with its own permissions.
@@ -62,21 +63,15 @@ public class MusicNotificationManager extends BroadcastReceiver {
     *   */
 
     // ID & Request code for pending intents
-    private static final int NOTIFICATION_ID    = 123;  // not sure if the numbers actually matter
-    private static final int REQUEST_CODE       = 321;
+    private static final int NOTIFICATION_ID    = 412;  // not sure if the numbers actually matter
+    private static final int REQUEST_CODE       = 501;
 
-    // Pending Intents
-    private final PendingIntent playIntent;             // All pretty self-explanatory
-    private final PendingIntent pauseIntent;
-    private final PendingIntent stopIntent;
-    private final PendingIntent prevIntent;
-    private final PendingIntent nextIntent;
 
     private final int colorOfNotification;              // Something that was mentioned in "Best practices in media playback - Google I/O 2016"
 
     private boolean notificationStarted = false;        // Helps prevents notification getting spammed
 
-    public MusicNotificationManager(MusicService service) throws RemoteException{
+    public MusicNotificationManager(MusicPlayerService service){
         /*
         * HEAVILY BASED ON:
         * https://github.com/googlesamples/android-MediaBrowserService/blob/master/Application/src/main/java/com/example/android/mediasession/service/notifications/MediaNotificationManager.java
@@ -88,22 +83,51 @@ public class MusicNotificationManager extends BroadcastReceiver {
         colorOfNotification = R.color.colorBackgroundDark2; // TODO check if this works
 
         // https://developer.android.com/reference/android/app/NotificationManager.html
-        notificationManager = (NotificationManager) musicService.getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager = (NotificationManager) musicService.getSystemService(Context.NOTIFICATION_SERVICE);
 
         String packageName = musicService.getPackageName(); // One of the many fields pending intent requires
 
-        // Set PendingIntents with FLAG_CANCEL_CURRENT -if the PendingIntent already exists, the current one should be canceled before generating a new one.
-        // https://developer.android.com/reference/android/app/PendingIntent.html
-        playIntent = PendingIntent.getBroadcast(musicService, REQUEST_CODE, new Intent(ACTION_PLAY).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT);
-        pauseIntent = PendingIntent.getBroadcast(musicService, REQUEST_CODE, new Intent(ACTION_PAUSE).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT);
-        stopIntent = PendingIntent.getBroadcast(musicService, REQUEST_CODE, new Intent(ACTION_STOP).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT);
-        prevIntent = PendingIntent.getBroadcast(musicService, REQUEST_CODE, new Intent(ACTION_PREV).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT);
-        nextIntent = PendingIntent.getBroadcast(musicService, REQUEST_CODE, new Intent(ACTION_NEXT).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT);
+        mPlayAction =
+                new NotificationCompat.Action(
+                        android.R.drawable.ic_media_play,
+                        musicService.getString(R.string.label_play),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                musicService,
+                                PlaybackStateCompat.ACTION_PLAY));
+        mPauseAction =
+                new NotificationCompat.Action(
+                        android.R.drawable.ic_media_pause,
+                        musicService.getString(R.string.label_pause),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                musicService,
+                                PlaybackStateCompat.ACTION_PAUSE));
+        mNextAction =
+                new NotificationCompat.Action(
+                        android.R.drawable.ic_media_next,
+                        musicService.getString(R.string.label_next),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                musicService,
+                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT));
+        mPrevAction =
+                new NotificationCompat.Action(
+                        android.R.drawable.ic_media_previous,
+                        musicService.getString(R.string.label_previous),
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                musicService,
+                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS));
 
         // Cancel existing notifications just in case service has been restarted
-        notificationManager.cancelAll();
+        mNotificationManager.cancelAll();
 
         Log.d(TAG, "MusicNotificationManager initialized");
+    }
+
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy: ");
+    }
+
+    public NotificationManager getNotificationManager() {
+        return mNotificationManager;
     }
 
 
@@ -115,15 +139,6 @@ public class MusicNotificationManager extends BroadcastReceiver {
 
             Notification notification = buildNotification();
             if (null != notification){
-                musicController.registerCallback(musicControllerCallback);
-                IntentFilter playbackFilter = new IntentFilter();
-                playbackFilter.addAction(ACTION_PLAY);
-                playbackFilter.addAction(ACTION_PAUSE);
-                playbackFilter.addAction(ACTION_STOP);
-                playbackFilter.addAction(ACTION_PREV);
-                playbackFilter.addAction(ACTION_NEXT);
-                musicService.registerReceiver(this, playbackFilter);
-
                 /*  From https://developer.android.com/reference/android/app/Service.html :
                     A started service can use the startForeground(int, Notification) API to put the service in a foreground state,
                     where the system considers it to be something the user is actively aware of and thus not a candidate for killing when low on memory
@@ -143,11 +158,10 @@ public class MusicNotificationManager extends BroadcastReceiver {
         if (notificationStarted){
            musicController.unregisterCallback(musicControllerCallback);
            try {
-               notificationManager.cancel(NOTIFICATION_ID);
-               musicService.unregisterReceiver(this);
+               mNotificationManager.cancel(NOTIFICATION_ID);
            } catch (Exception somethingToDoWithReceiverNotBeingRegistered){
                // if it wasn't registered then it didn't need unregistered anyway but just in case:
-               Log.e(TAG,"Error: could not de-register notification: " ,somethingToDoWithReceiverNotBeingRegistered);
+               Log.e(TAG,"Error: " ,somethingToDoWithReceiverNotBeingRegistered);
            }
            // actually remove the notification
            musicService.stopForeground(true);
@@ -157,31 +171,6 @@ public class MusicNotificationManager extends BroadcastReceiver {
 
         }
     }
-
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        final String action = intent.getAction();
-        Log.d(TAG, "Received intent action: " + action);
-
-        switch(action){
-            case ACTION_PAUSE:
-                musicController.getTransportControls().pause();
-                break;
-            case ACTION_PLAY:
-                musicController.getTransportControls().play();
-                break;
-            case ACTION_NEXT:
-                musicController.getTransportControls().skipToNext();
-                break;
-            case ACTION_PREV:
-                musicController.getTransportControls().skipToPrevious();
-                break;
-            default:
-                Log.w(TAG, "Unexpected Action: " + action);
-        }
-    }
-
 
     // resets the session token (first run or session destruction)
     private void resetSessionToken() throws RemoteException {
@@ -206,17 +195,17 @@ public class MusicNotificationManager extends BroadcastReceiver {
 
     // Set the notification's tap action
     private PendingIntent createContentIntent(MediaDescriptionCompat mediaDescription){
-        Intent openKantaApp = new Intent(musicService, MainActivity.class);
+        Intent openUI  = new Intent(musicService, MainActivity.class);
         // IF encountering problems return to the stack overflow post:
         // https://stackoverflow.com/questions/29321261/what-are-the-differences-between-flag-activity-reset-task-if-needed-and-flag-act
-        openKantaApp.setFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        if (null != mediaDescription){
+        openUI .setFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        if (null != mediaDescription){ // TODO Come fix later
             // Also from Google I/O 2016
             // https://developer.android.com/reference/android/support/v4/media/MediaDescriptionCompat.html
-            openKantaApp.putExtra(MainActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
+            //openUI .putExtra(MainActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION);
         }
 
-        return PendingIntent.getActivity(musicService, REQUEST_CODE, openKantaApp, PendingIntent.FLAG_CANCEL_CURRENT);
+        return PendingIntent.getActivity(musicService, REQUEST_CODE, openUI , PendingIntent.FLAG_CANCEL_CURRENT);
     }
 
     // TODO this
@@ -232,7 +221,7 @@ public class MusicNotificationManager extends BroadcastReceiver {
                 Notification notification = buildNotification();
                 if (null != notification){
                     // post notification to notification shade
-                    notificationManager.notify(NOTIFICATION_ID, notification);
+                    mNotificationManager.notify(NOTIFICATION_ID, notification);
                 }
             }
         }
@@ -255,7 +244,7 @@ public class MusicNotificationManager extends BroadcastReceiver {
            Notification notification = buildNotification();
            if (null != notification){
                // post notification to notification shade
-               notificationManager.notify(NOTIFICATION_ID, notification);
+               mNotificationManager.notify(NOTIFICATION_ID, notification);
            }
 
         }
@@ -275,13 +264,15 @@ public class MusicNotificationManager extends BroadcastReceiver {
         Bitmap albumArt = mediaDescription.getIconBitmap();
 
         // Since my phone is an android oreo device need to implement notification channels.
-        if (null == notificationManager.getNotificationChannel(CHANNEL_ID)){
+        if (null == mNotificationManager.getNotificationChannel(CHANNEL_ID)){
             // should really be channel_id, channel_name but meh
             NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, musicService.getPackageName(), NotificationManager.IMPORTANCE_DEFAULT);
+            notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(Color.MAGENTA); // TODO check I have notifaction LED
             notificationChannel.setDescription(CHANNEL_DESC);
             notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
-            notificationManager.createNotificationChannel(notificationChannel);
+            mNotificationManager.createNotificationChannel(notificationChannel);
             Log.d(TAG, "createNotificationChannel: New channel created");
         } else {
             Log.d(TAG, "createNotificationChannel: Existing channel reused");
@@ -292,14 +283,20 @@ public class MusicNotificationManager extends BroadcastReceiver {
         notificationBuilder.setStyle(
                 new android.support.v4.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(sessionToken)
-                    .setShowActionsInCompactView(0, 1, 2)) // prev, play/pause, next
+                    .setShowActionsInCompactView(0, 1, 2) // prev, play/pause, next
+                    // For backwards compatibility with Android L and earlier.
+                    .setShowCancelButton(true)
+                    .setCancelButtonIntent(
+                            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                    musicService,
+                                    PlaybackStateCompat.ACTION_STOP)))
                 // When notification is deleted (when playback is paused and notification can be
                 // deleted) fire MediaButtonPendingIntent with ACTION_STOP.
-                .setDeleteIntent(stopIntent)
-                // seems like a good idea ¯\_(ツ)_/¯
+                .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
+                        musicService,
+                        PlaybackStateCompat.ACTION_STOP))
+                // Has to be true or it spams ¯\_(ツ)_/¯
                 .setOnlyAlertOnce(true)
-                // Show controls on lock screen even when user hides sensitive content.
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 // Pending intent that is fired when user clicks on notification.
                 .setContentIntent(createContentIntent(mediaDescription))
                 .setColor(colorOfNotification)
@@ -307,28 +304,30 @@ public class MusicNotificationManager extends BroadcastReceiver {
                 // Title - Usually Song name.
                 .setContentTitle(mediaDescription.getTitle())
                 // Subtitle - Usually Artist name.
-                .setContentText(mediaDescription.getSubtitle());
+                .setContentText(mediaDescription.getSubtitle())
+                // Show controls on lock screen even when user hides sensitive content.
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         // IN LEFT TO RIGHT ORDER:
 
         // Previous button
         if ((playbackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) != 0) {
-            notificationBuilder.addAction(new NotificationCompat.Action(android.R.drawable.ic_media_previous, "media_previous", prevIntent));
+            notificationBuilder.addAction(mPrevAction);
         }
 
         // Play/Pause button
         if (playbackState.getState() == PlaybackStateCompat.STATE_PLAYING){
             // @android:drawable/ic_media_next
-            notificationBuilder.addAction(new NotificationCompat.Action(android.R.drawable.ic_media_play, "media_play", playIntent));
+            notificationBuilder.addAction(mPlayAction);
             notificationBuilder.setOngoing(true);
         } else {
-            notificationBuilder.addAction(new NotificationCompat.Action(android.R.drawable.ic_media_pause, "media_pause", pauseIntent));
+            notificationBuilder.addAction(mPauseAction);
             notificationBuilder.setOngoing(false);
         }
 
         // Next button
         if ((playbackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) != 0) {
-            notificationBuilder.addAction(new NotificationCompat.Action(android.R.drawable.ic_media_next, "media_next", nextIntent));
+            notificationBuilder.addAction(mNextAction);
         }
 
         if (null == playbackState || !notificationStarted){
@@ -339,6 +338,4 @@ public class MusicNotificationManager extends BroadcastReceiver {
 
         return notificationBuilder.build();
     }
-
-
 }

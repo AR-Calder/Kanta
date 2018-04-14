@@ -18,6 +18,12 @@
     <string name="current_artist">Artist</string>
     <string name="current_song">song</string>
 
+    <string name="notification_channel">ARCalder.Kanta</string>
+    <string name="label_play">Play</string>
+    <string name="label_pause">Pause</string>
+    <string name="label_next">Next</string>
+    <string name="label_previous">Previous</string>
+
     <string-array name="songs">
         <item>Black Panther</item>
         <item>All The Stars</item>
