@@ -1,100 +1,110 @@
 package uk.arcalder.Kanta;
 
-/**
- * Created by arcalder on 20/03/18.
- */
-
 public class Song {
-    // DESCRIPTION:
-    // Stores individual song objects containing all relevant metadata
-    // Designed to be used with Album, Artist, Genre & Playlist classes
 
+    private long id;
+    private String filePath;
 
-    // MEMBERS:
-    private String TITLE_KEY = "";
-    private String TITLE = "";
-    private String ALBUM_KEY = "";
-    private String ALBUM = "";
-    private String ARTIST_KEY = "";
-    private String ARTIST = "";
-    private Long GENRE_ID = -1L;
-    private String GENRE = "";
-    private int YEAR = -1;
-    private int TRACK = -1;
-    private Long DURATION = -1L;
-    private String DATA = "";
-    private boolean isCurrentSongFromQueue = false;
-
-    // CONSTRUCTOR
-    public Song(String TITLE_KEY, String TITLE, String ALBUM_KEY, String ALBUM, String ARTIST_KEY, String ARTIST, Long SONG_GENRE_ID, String SONG_GENRE_TITLE, int SONG_YEAR, int SONG_TRACK_NUM, Long SONG_DURATION, String SONG_DATA) {
-        this.TITLE_KEY = TITLE_KEY;        // Key associated with song title
-        this.TITLE = TITLE;            // Song Title
-        this.ALBUM_KEY = ALBUM_KEY;        // Key associated with Album
-        this.ALBUM = ALBUM;            // Album Title
-        this.ARTIST_KEY = ARTIST_KEY;       // Key associated with Artist
-        this.ARTIST = ARTIST;           // Artist Title
-        this.GENRE_ID = SONG_GENRE_ID;    // ID associated with Genre
-        this.GENRE = SONG_GENRE_TITLE; // Genre Name
-        this.YEAR = SONG_YEAR;        // Release Year
-        this.TRACK = SONG_TRACK_NUM;   // Track number (from album)
-        this.DURATION = SONG_DURATION;    // Duration of song in ms. NOTE: using getDuration will return duration in seconds
-        this.DATA = SONG_DATA;        // Path to song
+    /**
+     * Creates a new Song, with specified `songID` and `filePath`.
+     *
+     * @note It's a unique Android identifier for a media file
+     *       anywhere on the system.
+     */
+    public Song(long id, String filePath) {
+        this.id        = id;
+        this.filePath  = filePath;
     }
 
-    public String getTITLE_KEY() {
-        return TITLE_KEY;
+    /**
+     * Identifier for the song on the Android system.
+     * (so we can locate the file anywhere)
+     */
+    public long getId() {
+        return id;
     }
 
-    public String getTITLE() {
-        return TITLE;
+    /**
+     * Full path for the music file within the filesystem.
+     */
+    public String getFilePath() {
+        return filePath;
     }
 
-    public String getALBUM_KEY() {
-        return ALBUM_KEY;
+    // optional metadata
+
+    private String title       = "";
+    private String artist      = "";
+    private String album       = "";
+    private int    year        = -1;
+    private String genre       = "";
+    private int    track_no    = -1;
+    private long   duration_ms = -1;
+
+
+    public String getTitle() {
+        return title;
+    }
+    public void setTitle(String title) {
+        this.title = title;
     }
 
-    public String getALBUM() {
-        return ALBUM;
+
+    public String getArtist() {
+        return artist;
+    }
+    public void setArtist(String artist) {
+        this.artist = artist;
     }
 
-    public String getARTIST_KEY() {
-        return ARTIST_KEY;
+
+    public String getAlbum() {
+        return album;
+    }
+    public void setAlbum(String album) {
+        this.album = album;
     }
 
-    public String getARTIST() {
-        return ARTIST;
+
+    public int getYear() {
+        return year;
+    }
+    public void setYear(int year) {
+        this.year = year;
     }
 
-    public Long getGENRE_ID() {
-        return GENRE_ID;
+
+    public String getGenre() {
+        return genre;
+    }
+    public void setGenre(String genre) {
+        this.genre = genre;
     }
 
-    public String getGENRE() {
-        return GENRE;
+
+    public int getTrackNumber() {
+        return track_no;
+    }
+    public void setTrackNumber(int track_no) {
+        this.track_no = track_no;
     }
 
-    public int getYEAR() {
-        return YEAR;
+    /**
+     * Sets the duration of the song, in miliseconds.
+     */
+    public void setDuration(long duration_ms) {
+        this.duration_ms = duration_ms;
     }
-
-    public int getTRACK() {
-        return TRACK;
+    /**
+     * Returns the duration of the song, in miliseconds.
+     */
+    public long getDuration() {
+        return duration_ms;
     }
-
-    public Long getDURATION() {
-        // Return duration in seconds as ms isn't very useful
-        return DURATION / 1000;
+    public long getDurationSeconds() {
+        return getDuration() / 1000;
     }
-
-    public String getDATA() {
-        return DATA;
-    }
-
-    public boolean getIsCurrentSongFromQueue() {
-        return isCurrentSongFromQueue;
-    }
-
-    public void setIsCurrentSongFromQueue(boolean currentSongFromQueue) {
-        isCurrentSongFromQueue = currentSongFromQueue;
+    public long getDurationMinutes() {
+        return getDurationSeconds() / 60;
     }
 }
