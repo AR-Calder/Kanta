@@ -36,7 +36,7 @@ import java.util.List;
  * Created by Zynch on 14/04/2018.
  */
 
-public class MusicPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener  {
+public class MusicPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener, MediaPlayer.OnPreparedListener  {
 
     // TODO IMPLEMENT MY NOTIFICATION MANAGER, MAKE IT SIMILAR TO https://github.com/googlesamples/android-MediaBrowserService/blob/master/Application/src/main/java/com/example/android/mediasession/service/MusicService.java
     // TODO JUST CTRL-F For NOTIFICATION
@@ -143,8 +143,9 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             }
 
             try {
-                mMediaPlayer.prepare();
-            } catch (IOException e) {}
+
+                mMediaPlayer.prepareAsync();
+            } catch (Exception e) {}
 
             //Work with extras here if you want
         }
@@ -362,5 +363,10 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     public int onStartCommand(Intent intent, int flags, int startId) {
         MediaButtonReceiver.handleIntent(mMediaSessionCompat, intent);
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mediaPlayer) {
+        mediaPlayer.start();
     }
 }

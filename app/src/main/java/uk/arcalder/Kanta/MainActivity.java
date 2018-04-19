@@ -15,6 +15,7 @@ import android.support.v4.app.ListFragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -56,13 +57,37 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             super.onConnected();
             try {
                 Log.d(TAG, "onConnected called");
-                mMediaControllerCompat = new MediaControllerCompat(getApplicationContext(), mMediaBrowserCompat.getSessionToken());
-                mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
-                MediaControllerCompat.setMediaController(MainActivity.this, mMediaControllerCompat);
+
+                // Get session token
+                MediaSessionCompat.Token token =  mMediaBrowserCompat.getSessionToken();
+
+                // Create MediaControllerCompat
+                MediaControllerCompat mediaController =
+                        new MediaControllerCompat(MainActivity.this, // context
+                        token);
+
+                // Save the controller
+                MediaControllerCompat.setMediaController(MainActivity.this,
+                        mediaController);
+
+                //mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
+
                 //MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(songs.get(1).getAUDIO_ID(), null);
             } catch( RemoteException e ) {
                 Log.wtf(TAG, e);
             }
+        }
+
+        @Override
+        public void onConnectionSuspended() {
+            // The Service has crashed. Disable transport controls until it automatically reconnects
+            Log.d(TAG, "onConnectionSuspended");
+        }
+
+        @Override
+        public void onConnectionFailed() {
+            // The Service has refused our connection
+            Log.d(TAG, "onConnectionFailed");
         }
     };
 
@@ -107,25 +132,6 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
         Log.d(TAG, "onCreate: connectionCallback supposedly set");
 
-        // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(MainActivity.this,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // No explanation needed; request the permission
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE); // Once again shite documentation
-
-            // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-            // app-defined int constant. The callback method gets the
-            // result of the request.
-
-        } else {
-            // Permission has already been granted
-            new ScanSongs().execute();
-        }
-
         // Setup bottom navigation view, disable shift mode (which looks crap) and add listener
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigationBarBottom);
         BottomNavigationViewHelper.disableShiftMode(navigation);
@@ -135,14 +141,55 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         loadToolbarFragment(new TitlebarFragment(), "HOME");
         loadListFragment(new AlbumListFragment(), "ALBUM");
         loadMiniPlayerFragment(new MiniPlayerFragment());
+    }
 
+    public void getPermission(String Permission){
+
+        Log.i("Permissions", "Check if have permissions: " + "READ_EXTERNAL_STORAGE");
+        // Request permissions
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Permission)
+                != PackageManager.PERMISSION_GRANTED) {
+
+
+            Log.i("Permissions", "Permission not granted");
+            // Permission is not granted
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                    Permission)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+                // No explanation needed; request the permission
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Permission},
+                        MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE); // Once again shite documentation
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+                Log.i("Permissions", "Requesting Permission");
+            }
+        } else {
+
+
+
+            // Permission has already been granted
+            new initSongList().execute();
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart Called");
+
         mMediaBrowserCompat.connect();
+        getPermission(Manifest.permission.WAKE_LOCK);
+        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
     }
 
     @Override
@@ -174,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-                    new ScanSongs().execute();
+                    new initSongList().execute();
 
                 } else {
 
@@ -273,7 +320,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 try {
                     Log.d(TAG, String.valueOf(songs.get(0).getFilePath()));
                     Log.d(TAG, String.valueOf(songs.get(0).getId()));
-                    mMediaControllerCompat.getTransportControls();// .playFromMediaId(String.valueOf(songs.get(0).getFilePath()), null);
+                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(String.valueOf(songs.get(0).getId()), null);
                 } catch (Exception e){
                     Log.wtf(TAG, e);
                 }
@@ -306,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
     }
 
-    class ScanSongs extends AsyncTask<String, Integer, String> {
+    class initSongList extends AsyncTask<String, Integer, String> {
 
         /**
          * The action we'll do in the background.
