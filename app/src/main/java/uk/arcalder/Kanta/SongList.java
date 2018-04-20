@@ -99,6 +99,8 @@ public class SongList {
 
     }
 
+    // TODO Out of range
+
     // Get all songs
     public ArrayList<Song> getSongs(){
         Log.d(TAG, "getSongs");
@@ -110,6 +112,12 @@ public class SongList {
         Log.d(TAG, "setSongs");
         this.songs = songs;
     }
+
+    // get song by index
+    public Song getSongByIndex(int index){
+        return songs.get(index);
+    }
+
 
     // get all songs in playSet
     public ArrayList<Song> getplaySet(){
