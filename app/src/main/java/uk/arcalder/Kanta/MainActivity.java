@@ -38,10 +38,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
     private int mCurrentState;
 
-    private static MediaProvider mMusicProvider = new MediaProvider();
-
-    public ArrayList<Song> songs;
-
+    SongList mSongList;
 
     private MediaBrowserCompat mMediaBrowserCompat;
     private MediaControllerCompat mMediaControllerCompat;
@@ -118,6 +115,9 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mSongList = SongList.getInstance();
+        mSongList.initSongs(getApplicationContext());
+
         Log.d(TAG, "onCreate Called");
 
         // Create MediaBrowserServiceCompat
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
 
             // Permission has already been granted
-            new initSongList().execute();
+           // TODO ADD TO SONGLIST
         }
     }
 
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-                    new initSongList().execute();
+                    // TODO ADD THIS TO SONG LIST
 
                 } else {
 
@@ -318,9 +318,11 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 list_fragment = new SongListFragment();
                 title_fragment = new SearchFragment();
                 try {
-                    Log.d(TAG, String.valueOf(songs.get(0).getFilePath()));
-                    Log.d(TAG, String.valueOf(songs.get(0).getId()));
-                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(String.valueOf(songs.get(0).getId()), null);
+                    // TODO put this somewhere else.
+                    Song thisSong = mSongList.getSongs().get(0);
+                    Log.d(TAG, String.valueOf(thisSong.getTitle()));
+                    Log.d(TAG, String.valueOf(thisSong.getId()));
+                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
                 } catch (Exception e){
                     Log.wtf(TAG, e);
                 }
@@ -353,35 +355,4 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
     }
 
-    class initSongList extends AsyncTask<String, Integer, String> {
-
-        /**
-         * The action we'll do in the background.
-         */
-        @Override
-        protected String doInBackground(String... params) {
-
-            try {
-                // Will scan all songs on the device
-                MainActivity.mMusicProvider.scanSongs(getApplicationContext(), "external");
-                songs = MainActivity.mMusicProvider.getSongs();
-                return "SCAN_OK";
-            }
-            catch (Exception e) {
-                Log.e("Couldn't execute background task", e.toString());
-                e.printStackTrace();
-                return "SCAN_FAIL";
-            }
-        }
-
-        /**
-         * Called once the background processing is done.
-         */
-        @Override
-        protected void onPostExecute(String result) {
-            super.onPostExecute(result);
-
-            Toast.makeText(MainActivity.this, result, Toast.LENGTH_LONG).show();
-        }
-    }
 }

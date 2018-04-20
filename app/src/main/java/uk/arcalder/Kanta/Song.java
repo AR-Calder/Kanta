@@ -1,35 +1,38 @@
 package uk.arcalder.Kanta;
 
-public class Song {
+public class Song{
 
-    private long id;
-    private String filePath;
+    // hard reqs
+    private String id           = "";
+    private String data         = "";
 
-    public Song(long id, String filePath) {
-        this.id        = id;
-        this.filePath  = filePath;
+    //  metadata
+    private String title        = "";
+    private String artist       = "";
+    private String album        = "";
+    private String album_id     = "";
+    private String art          = "";
+    private String year         = "";
+    private String genre        = "";
+    private String genre_id     = "";
+
+    public Song(String id, String data, String title, String album, String artist, String album_id) {
+        this.id    = id;
+        this.data  = data;
+        this.title = title;
+        this.artist = artist;
+        this.album = album;
+        this.album_id = album_id;
     }
-
-
-    // optional metadata
-
-    private String title       = "";
-    private String artist      = "";
-    private String album       = "";
-    private int    year        = -1;
-    private String genre       = "";
-    private int    track_num    = -1;
-    private long   duration = -1;
 
     // ------------------------------Getters--------------------------------
     //Unique Identifier for this song
-    public long getId() {
+    public String getId() {
         return id;
     }
-
-    // Full filepath to song
-    public String getFilePath() {
-        return filePath;
+    // Song
+    public String getData() {
+        return data;
     }
 
     public String getTitle() {
@@ -44,7 +47,7 @@ public class Song {
         return album;
     }
 
-    public int getYear() {
+    public String getYear() {
         return year;
     }
 
@@ -52,13 +55,11 @@ public class Song {
         return genre;
     }
 
-    public int getTrackNumber() {
-        return track_num;
+    public String getArt() {
+        return art;
     }
 
-    public long getDuration() {
-        return duration;
-    }
+
 
     // ------------------------------Setters--------------------------------
     public void setTitle(String title) {
@@ -73,7 +74,11 @@ public class Song {
         this.album = album;
     }
 
-    public void setYear(int year) {
+    public void setAlbumId(String album_id) {
+        this.album_id = album_id;
+    }
+
+    public void setYear(String year) {
         this.year = year;
     }
 
@@ -81,12 +86,11 @@ public class Song {
         this.genre = genre;
     }
 
-    public void setTrackNumber(int track_no) {
-        this.track_num = track_no;
+    public void setTrackNumber(String art) {
+        this.art = art;
     }
 
-    public void setDuration(long duration) {
-        this.duration = duration;
+    public void setArt(String art) {
+        this.art = art;
     }
-
 }

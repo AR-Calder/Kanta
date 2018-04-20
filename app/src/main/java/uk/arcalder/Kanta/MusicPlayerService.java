@@ -59,6 +59,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     // MediaPlayer and session
     private MediaPlayer mMediaPlayer;
     private MediaSessionCompat mMediaSessionCompat;
+    private SongList mSongList;
 
     // Audio Focus Tracker
     private int mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
@@ -117,25 +118,39 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         }
 
         @Override
-        public void onPlayFromMediaId(String mediaId, Bundle extras) {
-            super.onPlayFromMediaId(mediaId, extras);
+        public void onPlayFromMediaId(String filePath, Bundle extras) {
+            Log.d(TAG, "onPlayFromMediaId");
+            super.onPlayFromMediaId(filePath, extras);
+
+            //Might have been playing something else
+            mMediaPlayer.reset();
+            initMediaPlayer();
+
+            //int id = Integer.valueOf(mediaId);
+
+            Log.d(TAG, "onPlayFromMediaId: filePath is " + filePath);
+
+
 
             try {
-                AssetFileDescriptor afd = getResources().openRawResourceFd(Integer.valueOf(mediaId));
-                if( afd == null ) {
-                    return;
-                }
+                  //Log.d(TAG, "onPlayFromMediaId: set afd");
+                  // AssetFileDescriptor afd = getResources().openRawResourceFd(id);
+//                if( afd == null ) {
+//                    return;
+//                }
 
                 try {
-                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    Log.d(TAG, "onPlayFromMediaId: setDataSource");
+                    //mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    mMediaPlayer.setDataSource(filePath);
 
                 } catch( IllegalStateException e ) {
                     mMediaPlayer.release();
                     initMediaPlayer();
-                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    mMediaPlayer.setDataSource(filePath);
                 }
 
-                afd.close();
+                //afd.close();
                 initMediaSessionMetadata();
 
             } catch (IOException e) {
@@ -147,7 +162,6 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 mMediaPlayer.prepareAsync();
             } catch (Exception e) {}
 
-            //Work with extras here if you want
         }
 
         @Override
@@ -168,6 +182,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     @Override
     public void onCreate() {
         super.onCreate();
+        mSongList = SongList.getInstance();
         initMediaPlayer();
         initMediaSession();
         initNoisyReceiver();
