@@ -9,6 +9,7 @@ import android.util.Log;
 import android.provider.MediaStore;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by Zynch on 20/04/2018.
@@ -17,9 +18,19 @@ import java.util.ArrayList;
 public class SongList {
     private static final String TAG = SongList.class.getSimpleName();
 
-    public static ArrayList<Song>   songs;
-    private static ArrayList<Song>  songQueue;
-    public static ArrayList<Song>   playSet;
+    public static ArrayList<Song>   songs = new ArrayList<>();
+    private static ArrayList<Song>  songQueue = new ArrayList<>();
+    public static ArrayList<Song>   playSet = new ArrayList<>();
+
+    public static Song currentSong;
+
+    public Song getCurrentSong() {
+        return currentSong;
+    }
+
+    public void setCurrentSong(Song currentSong) {
+        SongList.currentSong = currentSong;
+    }
 
     public static boolean loading   = false;
     public static boolean loaded    = false;
@@ -29,7 +40,7 @@ public class SongList {
     private static class AsyncInitSongs extends AsyncTask<Cursor, Song, ArrayList<Song>>{
         @Override
         protected ArrayList<Song> doInBackground(Cursor... cursors) {
-
+            Log.d(TAG, "AsyncInitSongs: doInBackground");
             ArrayList<Song> asyncsongs = new ArrayList<>();
 
             if(null != cursors[0]){
@@ -116,6 +127,29 @@ public class SongList {
     // get song by index
     public Song getSongByIndex(int index){
         return songs.get(index);
+    }
+
+    public Song getCurrent(){
+        return songs.get(0); // TODO FIX LATER
+
+//        if (!songQueue.isEmpty()){
+//            Log.d(TAG, "getCurrent: getting queue song");
+//            return getNextQueueSong();
+//        } else if (!playSet.isEmpty()){
+//            if (current_position != -1 && current_position < playSet.size()) {
+//                Log.d(TAG, "getCurrent: getting playSet song");
+//                return playSet.get(current_position);
+//            }
+//            Log.d(TAG, "getCurrent: getting playSet song");
+//
+//        } else if (!songs.isEmpty()){
+//            // get a random song
+//            Log.d(TAG, "getCurrent: getting random song");
+//            songs.get(ThreadLocalRandom.current().nextInt(0, songs.size()));
+//        }
+//
+//        // Literally nothing
+//        return null;
     }
 
 
