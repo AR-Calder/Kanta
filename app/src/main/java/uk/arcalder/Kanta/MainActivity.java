@@ -322,6 +322,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                     Song thisSong = mSongList.getSongs().get(0);
                     Log.d(TAG, String.valueOf(thisSong.getTitle()));
                     Log.d(TAG, String.valueOf(thisSong.getId()));
+                    mSongList.setCurrentSong(thisSong);
                     MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
                 } catch (Exception e){
                     Log.wtf(TAG, e);

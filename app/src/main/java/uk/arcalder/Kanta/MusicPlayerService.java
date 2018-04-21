@@ -28,6 +28,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -509,6 +510,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
         isServiceStarted = true;
+        // TODO USE APP COMPAT EVERYTHING
         //MediaButtonReceiver.handleIntent(mMediaSession, intent);
         return super.onStartCommand(intent, flags, startId);
     }
@@ -567,60 +569,56 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
 
         final Notification.Builder notificationBuilder = new Notification.Builder(this, CHANNEL_ID);
-        notificationBuilder.setStyle(new Notification.MediaStyle().setMediaSession(mMediaSession.getSessionToken()))
-//        .setStyle(
-//                new android.support.v4.media.app.NotificationCompat.MediaStyle()
-//                        .setMediaSession(mMediaSession.getSessionToken())
-//                        .setShowCancelButton(true)
-//                        .setShowActionsInCompactView(0, 1, 2)
-//                        .setCancelButtonIntent(
-//                                MediaButtonReceiver.buildMediaButtonPendingIntent(
-//                                        this, PlaybackStateCompat.ACTION_STOP)))
+        notificationBuilder//.setStyle(new Notification.MediaStyle().setMediaSession(mMediaSession.getSessionToken()))
                 // Has to be true or it spams ¯\_(ツ)_/¯
                 .setOnlyAlertOnce(true)
                 // Pending intent that is fired when user clicks on notification.
                 .setContentIntent(createContentIntent(current_song))
                 .setColor(ContextCompat.getColor(this, R.color.colorAccent))
                 //.setLargeIcon(albumArt)
+                .setSmallIcon(android.R.drawable.stat_notify_missed_call)
                 // Title - Usually Song name.
-                .setContentTitle("Title")//current_song.getTitle())
+                .setContentTitle(current_song.getTitle())
                 // Subtitle - Usually Artist name.
-                .setContentText("Artist")//current_song.getArtist())
-                .setSubText("Song Name")
-                .setOngoing(true)
+                .setContentText(current_song.getArtist())
+                .setSubText(current_song.getAlbum())
                 // Show controls on lock screen even when user hides sensitive content.
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 // When notification is deleted (when playback is paused and notification can be
                 // deleted) fire MediaButtonPendingIntent with ACTION_STOP.
                         .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
                         this,
-                        PlaybackState.ACTION_STOP)) //TODO fix this janky test
+                        PlaybackState.ACTION_STOP)); //TODO fix this janky test
 
-                .addAction(mPrevAction).addAction(mPauseAction).addAction(mNextAction);
+                //.addAction(mPrevAction).addAction(mPauseAction).addAction(mNextAction);
 
 
         Log.d(TAG, "createNotificationChannel: Set style");
         // IN LEFT TO RIGHT ORDER:
 
-//        // Previous button
-//        if ((mPlaybackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS) != 0) {
-//            notificationBuilder.addAction(mPrevAction);
-//        }
-//
-//        // Play/Pause button
-//        if (mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING){
-//            // @android:drawable/ic_media_next
-//            notificationBuilder.addAction(mPlayAction);
-//            notificationBuilder.setOngoing(true);
-//        } else {
-//            notificationBuilder.addAction(mPauseAction);
-//            notificationBuilder.setOngoing(false);
-//        }
-//
-//        // Next button
-//        if ((mPlaybackState.getActions() & PlaybackStateCompat.ACTION_SKIP_TO_NEXT) != 0) {
-//            notificationBuilder.addAction(mNextAction);
-//        }
+        // Previous button
+        notificationBuilder.addAction(mPrevAction);
+
+
+        // Play/Pause button
+        if (mPlaybackState.getState() == PlaybackState.STATE_PLAYING){
+            // @android:drawable/ic_media_next
+            notificationBuilder.addAction(mPlayAction);
+            notificationBuilder.setOngoing(true);
+        } else {
+            notificationBuilder.addAction(mPauseAction);
+            notificationBuilder.setOngoing(false);
+        }
+
+        // Next button
+        notificationBuilder.addAction(mNextAction);
+
+
+        // Set style after actions so no crash
+        notificationBuilder.setStyle(
+                new Notification.MediaStyle()
+                        .setMediaSession(mMediaSession.getSessionToken())
+                        .setShowActionsInCompactView(0, 1, 2));
 
         if (null == mPlaybackState){
             Log.d(TAG, "null == playbackState OR !notificationStarted");
