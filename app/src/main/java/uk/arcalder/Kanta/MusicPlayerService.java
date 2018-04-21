@@ -26,8 +26,15 @@ import android.os.ResultReceiver;
 import android.service.media.MediaBrowserService;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaBrowserServiceCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
@@ -41,7 +48,7 @@ import java.util.List;
  * Created by Zynch on 14/04/2018.
  */
 
-public class MusicPlayerService extends MediaBrowserService implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener, MediaPlayer.OnPreparedListener  {
+public class MusicPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener, MediaPlayer.OnPreparedListener  {
 
     // TODO IMPLEMENT MY NOTIFICATION MANAGER, MAKE IT SIMILAR TO https://github.com/googlesamples/android-MediaBrowserService/blob/master/Application/src/main/java/com/example/android/mediasession/service/MusicService.java
     // TODO JUST CTRL-F For NOTIFICATION
@@ -72,7 +79,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
     private static final int AUDIO_FOCUSED = 2;
 
     // Track Playback State
-    private static PlaybackState mPlaybackState;
+    private static PlaybackStateCompat mPlaybackState;
     // Track service state
     private static boolean isServiceStarted = false;
     // Track current song index
@@ -80,8 +87,8 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
     // MediaPlayer, controls & session
     private MediaPlayer mMediaPlayer;
-    private MediaController mMediaController;
-    private MediaSession mMediaSession;
+    private MediaControllerCompat mMediaController;
+    private MediaSessionCompat mMediaSession;
 
     // Notification Manager
     private NotificationManager mNotificationManager;
@@ -102,6 +109,9 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         public void onReceive(Context context, Intent intent) {
             if(null != mMediaPlayer && mMediaPlayer.isPlaying() ) {
                 mMediaPlayer.pause();
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                currentNotification = buildNotification();
+                mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
             }
         }
     };
@@ -118,13 +128,13 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
             .setOnAudioFocusChangeListener(this) // This might be wrong
             .build();
 
-    private Notification.Action mPlayAction;
-    private Notification.Action mPauseAction;
-    private Notification.Action mNextAction;
-    private Notification.Action mPrevAction;
+    private NotificationCompat.Action mPlayAction;
+    private NotificationCompat.Action mPauseAction;
+    private NotificationCompat.Action mNextAction;
+    private NotificationCompat.Action mPrevAction;
 
     // Media Playback
-    private MediaSession.Callback mMediaSessionCallback = new MediaSession.Callback() {
+    private MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
 
         @Override
         public void onPlay() {
@@ -144,21 +154,31 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
             songIndex = (songIndex != -1) ? songIndex : 0;
             Song thisSong = mSongList.getSongByIndex(songIndex);
 
+            if (mMediaPlayer.getCurrentPosition() == 0) {
+                try {
+                    FileInputStream inputStream = new FileInputStream(new File(thisSong.getData()));
+                    Log.d(TAG, "onPlay: setDataSource");
+                    Log.d(TAG, "onPlay: getFD = " + inputStream.getFD());
+                    mMediaPlayer.setDataSource(inputStream.getFD());
+                    mMediaPlayer.prepareAsync();
+                    inputStream.close();
 
-            mMediaSession.setActive(true);
-            setMediaPlaybackState(PlaybackState.STATE_PLAYING);
+                } catch (IOException e) {
+                    Log.e(TAG, "Could not play media from data:", e);
+                    stopSelf();
+                }
+            }
 
-            try {
-                FileInputStream inputStream = new FileInputStream(new File(thisSong.getData()));
-                Log.d(TAG, "onPlay: setDataSource");
-                Log.d(TAG, "onPlay: getFD = " + inputStream.getFD());
-                mMediaPlayer.setDataSource(inputStream.getFD());
-                mMediaPlayer.prepareAsync();
-                inputStream.close();
+            if(mMediaSession.getController().getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
+                mMediaSession.setActive(true);
+                mMediaPlayer.start();
+                initNoisyReceiver();
+                setMediaPlaybackState(PlaybackState.STATE_PLAYING);
 
-            } catch( IOException e ) {
-                Log.e(TAG, "Could not play media from data:", e);
-                stopSelf();
+                // Notify
+                currentNotification = buildNotification();
+                startForeground(NOTIFICATION_ID, currentNotification);
+
             }
 
             //TODO fix notification?
@@ -178,8 +198,11 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                 setMediaPlaybackState(PlaybackState.STATE_PAUSED);
                 //TODO fix?
                 //Notifications
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                stopForeground(false);
+
                 currentNotification = buildNotification();
-                startForeground(NOTIFICATION_ID, currentNotification);
+                mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
             }
         }
 
@@ -239,7 +262,13 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
             super.onStop();
             releaseAudioFocus();
             stopSelf();
+            mMediaSession.setActive(false);
+            mMediaPlayer.stop();
             isServiceStarted = false;
+
+            // Remove notifications
+            stopForeground(true);
+
         }
 
 
@@ -252,7 +281,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
 
         mPrevAction =
-                new Notification.Action.Builder(
+                new NotificationCompat.Action.Builder(
                         android.R.drawable.ic_media_previous,
                         "previous",
                         MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -260,7 +289,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                                 PlaybackState.ACTION_SKIP_TO_PREVIOUS)).build();
 
         mNextAction =
-                new Notification.Action.Builder(
+                new NotificationCompat.Action.Builder(
                         android.R.drawable.ic_media_next,
                         "next",
                         MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -268,7 +297,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                                 PlaybackState.ACTION_SKIP_TO_NEXT)).build();
 
         mPauseAction =
-                new Notification.Action.Builder(
+                new NotificationCompat.Action.Builder(
                         android.R.drawable.ic_media_pause,
                        "pause",
                         MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -276,7 +305,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                                 PlaybackState.ACTION_PAUSE)).build();
 
         mPlayAction =
-                new Notification.Action.Builder(
+                new NotificationCompat.Action.Builder(
                         android.R.drawable.ic_media_play,
                         "play",
                         MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -304,7 +333,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
     private void initMediaController() {
         try {
-            mMediaController = new MediaController(getApplicationContext(), mMediaSession.getSessionToken());
+            mMediaController = new MediaControllerCompat(getApplicationContext(), mMediaSession.getSessionToken());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -346,7 +375,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
     private void initMediaSession() {
         ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
         // Create a MediaSession
-        mMediaSession = new MediaSession(getApplicationContext(), TAG);
+        mMediaSession = new MediaSessionCompat(getApplicationContext(), TAG);
 
         // Enable callbacks from MediaButtons and TransportControls
         mMediaSession.setFlags(
@@ -354,7 +383,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                 MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS );
 
         // Set an initial PlaybackState with ACTION_PLAY, so media buttons can start the player
-        mMediaSession.setPlaybackState( new PlaybackState.Builder()
+        mMediaSession.setPlaybackState( new PlaybackStateCompat.Builder()
                                                 .setActions(
                                                     PlaybackState.ACTION_PLAY |
                                                     PlaybackState.ACTION_PLAY_PAUSE).build());
@@ -368,11 +397,11 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         mMediaSession.setCallback(mMediaSessionCallback);
 
         // Set the session's token so that client activities can communicate with it.
-        setSessionToken(mMediaSession.getSessionToken());
+        this.setSessionToken(mMediaSession.getSessionToken());
     }
 
     private void setMediaPlaybackState(int state) {
-        PlaybackState.Builder playbackStateBuilder = new PlaybackState.Builder();
+        PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder();
         if( state == PlaybackState.STATE_PLAYING ) {
             playbackStateBuilder.setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PAUSE);
         } else {
@@ -383,7 +412,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
     }
 
     private void initMediaSessionMetadata() {
-        MediaMetadata.Builder metadataBuilder = new MediaMetadata.Builder();
+        MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
         //Notification icon in card
         metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
         metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
@@ -422,20 +451,6 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
 
     // ------------------------Media Service Listeners -------------------------------
-    @Nullable
-    @Override
-    public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
-        if(TextUtils.equals(clientPackageName, getPackageName())) {
-            return new BrowserRoot(getString(R.string.app_name), null);
-        }
-
-        return null;
-    }
-
-    @Override
-    public void onLoadChildren(@NonNull String s, @NonNull Result<List<MediaBrowser.MediaItem>> result) {
-
-    }
 
 
     @Override
@@ -492,7 +507,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         //Notifications
         Log.d(TAG,"onAudioFocusChange: buildNotification");
         currentNotification = buildNotification();
-        startForeground(NOTIFICATION_ID, currentNotification);
+        mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
     }
 
 
@@ -511,7 +526,9 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         Log.d(TAG, "onStartCommand");
         isServiceStarted = true;
         // TODO USE APP COMPAT EVERYTHING
-        //MediaButtonReceiver.handleIntent(mMediaSession, intent);
+        MediaButtonReceiver.handleIntent(mMediaSession, intent);
+        mPlaybackState = mMediaController.getPlaybackState();
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -568,7 +585,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         }
 
 
-        final Notification.Builder notificationBuilder = new Notification.Builder(this, CHANNEL_ID);
+        final NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID);
         notificationBuilder//.setStyle(new Notification.MediaStyle().setMediaSession(mMediaSession.getSessionToken()))
                 // Has to be true or it spams ¯\_(ツ)_/¯
                 .setOnlyAlertOnce(true)
@@ -576,7 +593,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
                 .setContentIntent(createContentIntent(current_song))
                 .setColor(ContextCompat.getColor(this, R.color.colorAccent))
                 //.setLargeIcon(albumArt)
-                .setSmallIcon(android.R.drawable.stat_notify_missed_call)
+                .setSmallIcon(android.R.drawable.ic_media_play)
                 // Title - Usually Song name.
                 .setContentTitle(current_song.getTitle())
                 // Subtitle - Usually Artist name.
@@ -599,6 +616,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         // Previous button
         notificationBuilder.addAction(mPrevAction);
 
+        Log.d(TAG, "buildNotification: PlaybackState is " + mPlaybackState.getState());
 
         // Play/Pause button
         if (mPlaybackState.getState() == PlaybackState.STATE_PLAYING){
@@ -616,7 +634,7 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
 
         // Set style after actions so no crash
         notificationBuilder.setStyle(
-                new Notification.MediaStyle()
+                new android.support.v4.media.app.NotificationCompat.MediaStyle()
                         .setMediaSession(mMediaSession.getSessionToken())
                         .setShowActionsInCompactView(0, 1, 2));
 
@@ -644,6 +662,26 @@ public class MusicPlayerService extends MediaBrowserService implements MediaPlay
         }
 
         return PendingIntent.getActivity(this, REQUEST_CODE, openUI , PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+
+    // -------------------------Shit media service 'needs' but doesn't 'need' ------------------------------------------
+    @Nullable
+    @Override
+    public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
+        if(TextUtils.equals(clientPackageName, getPackageName())) {
+            return new BrowserRoot(getString(R.string.app_name), null);
+        }
+
+        return null;
+    }
+
+    @Override
+    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+    }
+
+    @Override
+    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result, @NonNull Bundle options) {
     }
 
 
