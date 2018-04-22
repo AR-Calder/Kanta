@@ -152,7 +152,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
             // If index not initialized
             songIndex = (songIndex != -1) ? songIndex : 0;
-            Song thisSong = mSongList.getSongByIndex(songIndex);
+            Song thisSong = mSongList.getSongByIndexFromSongs(songIndex); // TODO CHANCE THIS LATER
 
             if (mMediaPlayer.getCurrentPosition() == 0) {
                 try {
@@ -194,7 +194,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
             if( mMediaPlayer.isPlaying() ) {
                 mMediaPlayer.pause();
-                unregisterReceiver(mNoisyReceiver);
+                removeNoisyReceiver();
                 setMediaPlaybackState(PlaybackState.STATE_PAUSED);
                 //TODO fix?
                 //Notifications
@@ -259,7 +259,6 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onStop() {
-            super.onStop();
             releaseAudioFocus();
             stopSelf();
             mMediaSession.setActive(false);
@@ -268,6 +267,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
             // Remove notifications
             stopForeground(true);
+            super.onStop();
 
         }
 
@@ -331,6 +331,47 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         Log.d(TAG, "onCreate MusicService creating MediaSession, MediaPlayer, and MediaNotificationManager");
     }
 
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        releaseAudioFocus();
+        Log.d(TAG, "onDestroy: mediaplayer.stop()");
+        mMediaPlayer.stop();
+        Log.d(TAG, "onDestroy: mediaplayer.release()");
+        mMediaPlayer.release();
+        Log.d(TAG, "onDestroy: mediasession.release()");
+        mMediaSession.release();
+        Log.d(TAG, "onDestroy: stop Foreground");
+        stopForeground(true);
+        releaseAudioFocus();
+        removeNoisyReceiver();
+
+        Log.d(TAG, "onDestroy: cancel song list generation");
+        // TODO if for some reason the app is closed before the library is able to load
+        // Seemed like a good idea but crashes
+        // "Attempt to invoke virtual method 'boolean uk.arcalder.Kanta.SongList$AsyncInitSongs.isCancelled()' on a null object reference"
+        // mSongList.cancelInitSongs();
+        Log.d(TAG, "onDestroy: super.onDestroy");
+        super.onDestroy();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.d(TAG, "onTaskRemoved");
+
+        // TODO if for some reason the app is closed before the library is able to load
+        // Seemed like a good idea but crashes
+        // "Attempt to invoke virtual method 'boolean uk.arcalder.Kanta.SongList$AsyncInitSongs.isCancelled()' on a null object reference"
+        // mSongList.cancelInitSongs();
+        Log.d(TAG, "onTaskRemoved: super.onTaskRemoved");
+        if (rootIntent != null) {
+            super.onTaskRemoved(rootIntent);
+        }
+
+        // Want to kill service if user wishes to close it.
+        onDestroy();
+    }
+
     private void initMediaController() {
         try {
             mMediaController = new MediaControllerCompat(getApplicationContext(), mMediaSession.getSessionToken());
@@ -339,23 +380,26 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         }
     }
 
+
+
+    private static boolean isNoisyReceiverActive = false;
+
     private void initNoisyReceiver() {
         //Handles headphones coming unplugged. cannot be done through a manifest receiver
         IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         registerReceiver(mNoisyReceiver, filter);
+        isNoisyReceiverActive = true;
     }
 
-
-
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        super.onDestroy();
-        releaseAudioFocus();
-        if (isServiceStarted) {
+    private void removeNoisyReceiver(){
+        if (isNoisyReceiverActive){
+            Log.d(TAG, "removeNoisyReceiver: removing");
             unregisterReceiver(mNoisyReceiver);
+            isNoisyReceiverActive = false;
+        } else {
+            Log.d(TAG, "removeNoisyReceiver: already removed");
         }
-        mMediaSession.release();
+
     }
 
     private void initMediaPlayer() {
@@ -559,6 +603,9 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         // Get current song
         Song current_song = mSongList.getCurrentSong();
 
+
+        mPlaybackState = mMediaController.getPlaybackState();
+
         // Get Album Art
 
         // (null != current_song) ? BitmapFactory.decodeFile(current_song.getArt()) :
@@ -619,7 +666,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         Log.d(TAG, "buildNotification: PlaybackState is " + mPlaybackState.getState());
 
         // Play/Pause button
-        if (mPlaybackState.getState() == PlaybackState.STATE_PLAYING){
+        if (mPlaybackState.getState() != PlaybackState.STATE_PLAYING){
             // @android:drawable/ic_media_next
             notificationBuilder.addAction(mPlayAction);
             notificationBuilder.setOngoing(true);

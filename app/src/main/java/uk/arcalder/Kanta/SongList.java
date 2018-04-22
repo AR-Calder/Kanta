@@ -37,6 +37,8 @@ public class SongList {
 
     private static int current_position = -1;
 
+    private static AsyncInitSongs initSongs;
+
     private static class AsyncInitSongs extends AsyncTask<Cursor, Song, ArrayList<Song>>{
         @Override
         protected ArrayList<Song> doInBackground(Cursor... cursors) {
@@ -91,24 +93,31 @@ public class SongList {
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.ALBUM,
-                MediaStore.Audio.Media.ALBUM_ID
+                MediaStore.Audio.Media.ALBUM_ID,
         };
 
         Cursor songCursor = mContentResolver.query(uri,null, selection_is_music, null, sort_order);
-        new AsyncInitSongs(){
+        initSongs = new AsyncInitSongs(){
             @Override
             protected void onPostExecute(ArrayList<Song> asyncsongs){
                 if (null != asyncsongs) {
                     setSongs(asyncsongs);
                     loaded = true;
                     loading = false;
+                    setPlaySet(asyncsongs);
                 }
             }
-        }.execute(songCursor);
+        };
+        initSongs.execute(songCursor);
         loading = true;
-
-
     }
+
+    public void cancelInitSongs(){
+        if(!initSongs.isCancelled()){
+            initSongs.cancel(true);
+        }
+    }
+
 
     // TODO Out of range
 
@@ -125,8 +134,12 @@ public class SongList {
     }
 
     // get song by index
-    public Song getSongByIndex(int index){
+    public Song getSongByIndexFromSongs(int index){
         return songs.get(index);
+    }
+
+    public int getSizeOfSongs(){
+        return songs.size();
     }
 
     public Song getCurrent(){
@@ -165,6 +178,14 @@ public class SongList {
         this.playSet = songs;
     }
 
+    // get song by index
+    public Song getSongByIndexFromPlaySet(int index){
+            return playSet.get(index);
+    }
+
+    public int getSizeOfPlaySet(){
+        return playSet.size();
+    }
 
     // get next queued song
     public Song getNextQueueSong(){

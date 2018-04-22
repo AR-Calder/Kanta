@@ -1,6 +1,7 @@
 package uk.arcalder.Kanta;
 
 import android.Manifest;
+import android.app.FragmentManager;
 import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
@@ -19,6 +20,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -27,7 +29,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 
-public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener, View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener, View.OnClickListener, SongListFragment.onSongListFragmentInteractionListener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
@@ -96,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             if( state == null ) {
                 return;
             }
-
+            Log.d(TAG, "onPlaybackStateChanged");
             switch( state.getState() ) {
                 case PlaybackStateCompat.STATE_PLAYING: {
                     mCurrentState = STATE_PLAYING;
@@ -108,23 +110,40 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 }
             }
         }
+
     };
 
+
+    private VolatileStorageFragment storageFragment;
+    private String STORAGE_TAG = "STORAGE_FRAGMENT";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate Called");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSongList = SongList.getInstance();
+        //TODO CREATE BASE FRAGMENT WITH THI
+
+
+        android.support.v4.app.FragmentManager fm = getSupportFragmentManager();
+        storageFragment = (VolatileStorageFragment) fm.findFragmentByTag(STORAGE_TAG);
+
+        if (storageFragment == null){
+            Log.d(TAG, "onCreate: new storageFragment");
+
+            //add the fragment
+            storageFragment = new VolatileStorageFragment();
+            fm.beginTransaction().add(storageFragment, STORAGE_TAG).commit();
+            // set data source
+            storageFragment.saveList();
+        } else {
+            Log.d(TAG, "onCreate: get existing storageFragment");
+        }
+
+        mSongList = storageFragment.getList();
         mSongList.initSongs(getApplicationContext());
 
-        Log.d(TAG, "onCreate Called");
-
-        // Create MediaBrowserServiceCompat
-//        mMediaBrowserCompat = new MediaBrowserCompat(this,
-//                new ComponentName(this, MusicPlayerService.class),
-//                mMediaBrowserCompatConnectionCallback,
-//                null); // optional Bundle
 
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MusicPlayerService.class),
                 mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
@@ -139,9 +158,11 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
         // Load default fragments
         loadToolbarFragment(new TitlebarFragment(), "HOME");
-        loadListFragment(new AlbumListFragment(), "ALBUM");
+        loadListFragment(new SongListFragment(), "ALBUM");
         loadMiniPlayerFragment(new MiniPlayerFragment());
     }
+
+
 
     public void getPermission(String Permission){
 
@@ -249,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     }
 
     // List fragments
-    private boolean loadListFragment(ListFragment list_frag, String TAG) {
+    private boolean loadListFragment(SongListFragment list_frag, String TAG) {
         // If Fragment doesn't exist
         if (list_frag != null && null == getSupportFragmentManager().findFragmentByTag(TAG)) {
 
@@ -290,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
         Fragment title_fragment = null;
-        ListFragment list_fragment = null;
+        SongListFragment list_fragment = null;
 
         String TITLE_TAG = null;
         String LIST_TAG = null;
@@ -309,8 +330,18 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             case R.id.navigation_dashboard:
                 // Browse
                 TITLE_TAG = "BROWSE";
-                list_fragment = new AlbumListFragment();
+                list_fragment = new SongListFragment();
                 title_fragment = new TitlebarFragment();
+                try {
+                    // TODO put this somewhere else.
+                    Song thisSong = mSongList.getSongs().get(2);
+                    Log.d(TAG, String.valueOf(thisSong.getTitle()));
+                    Log.d(TAG, String.valueOf(thisSong.getId()));
+                    mSongList.setCurrentSong(thisSong);
+                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
+                } catch (Exception e){
+                    Log.wtf(TAG, e);
+                }
                 break;
             case R.id.navigation_search:
                 // Search
@@ -331,13 +362,13 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             case R.id.navigation_notifications:
                 // QUEUE
                 TITLE_TAG = "QUEUE";
-                list_fragment = new AlbumListFragment();
+                list_fragment = new SongListFragment();
                 title_fragment = new TitlebarFragment();
                 break;
             case R.id.navigation_library:
                 // LIBRARY
                 TITLE_TAG = "LIBRARY";
-                list_fragment = new AlbumListFragment();
+                list_fragment = new SongListFragment();
                 title_fragment = new TitlebarFragment();
                 break;
         }
@@ -360,5 +391,10 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         //TODO something something parcle-able?
+    }
+
+    @Override
+    public void onArticleSelected(int position) {
+        Log.d(TAG, "onArticleSelected");
     }
 }
