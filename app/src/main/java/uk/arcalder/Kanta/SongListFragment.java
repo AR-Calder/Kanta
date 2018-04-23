@@ -2,7 +2,10 @@ package uk.arcalder.Kanta;
 
 
 import android.content.Context;
+import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -12,6 +15,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
 
 /**
  * Created by Zynch on 07/03/2018.
@@ -31,15 +36,23 @@ public class SongListFragment extends Fragment {
     // Interface for onInteraction callback
     public interface onSongListFragmentInteractionListener {
         void playSongFromPlaysetIndex(int position);
+        void playSong();
     }
 
     // view, adapter & manager
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private static SongListAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    // Song List access
+    // Song content access
+    private MusicProvider mMusicProvider;
+    private static ArrayList<Song> songList = new ArrayList<>();
     MusicLibrary mMusicLibrary;
+
+    // Fragment data trackers
+    private String bundleArgsAlbumId = "ALBUM_ID";   // Field we look for in bundle
+    private String bundleAlbumId = "";                 // The actual value in said field
+    private String titlebarTitle    = "";
 
     public SongListFragment(){
         Log.d(TAG, "SongListFragment created");
@@ -76,9 +89,27 @@ public class SongListFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
+
         // Get access to song list
         mMusicLibrary = MusicLibrary.getInstance();
 
+        if (savedInstanceState == null) {
+            // Check what type of load to do
+            Bundle args = getArguments();
+            try {
+                bundleAlbumId = args.getString(bundleArgsAlbumId);
+            } catch (Exception e) {
+                Log.w(TAG, "onCreate: missing bundle args: ");
+            }
+            if (null == bundleAlbumId || bundleAlbumId.equals("")) {
+                getAllSongs();
+                titlebarTitle = "ALBUMS";
+            } else {
+                getSongsByAlbumId(bundleArgsAlbumId);
+            }
+        }
+
+        mAdapter = new SongListAdapter(songList);
         //Retain Fragment to prevent unnecessary recreation
         //setRetainInstance(true);
         // ^ This won't work because:
@@ -107,7 +138,7 @@ public class SongListFragment extends Fragment {
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         Log.d(TAG, "onCreateView: setAdapter to playSet");
-        mAdapter = new SongListAdapter(mMusicLibrary.getViewSongs());
+        // NOTE: mAdapter is initialized in onCreate
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.addOnItemTouchListener(new RecyclerViewOnInteractionListener(getContext(), mRecyclerView, new RecyclerViewOnInteractionListener.OnTouchActionListener(){
@@ -125,8 +156,9 @@ public class SongListFragment extends Fragment {
             @Override
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
-                mSongListFragmentCallback.playSongFromPlaysetIndex(position);
-                mMusicLibrary.setPlaySet(mMusicLibrary.getViewSongs());
+                mMusicLibrary.setCurrent_position(position);
+                mMusicLibrary.setPlaySet(songList);
+                mSongListFragmentCallback.playSong();
             }
         }));
 
@@ -150,4 +182,113 @@ public class SongListFragment extends Fragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
     }
+
+    // -----------------------------ALL SONG QUERY STUFFS---------------------------------
+    // COLUMN HELPER
+    private String[] songColumns = {
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ARTIST_ID,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.ALBUM_ID,
+    };
+
+    private void QueryHelper(String selection){
+        Cursor cursor = getActivity().getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songColumns, selection, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+        asyncSongQuery = new AsyncSongQuery();
+        asyncSongQuery.execute(cursor);
+    }
+
+
+    // TODO GET ALL SONGS
+    public void getAllSongs() {
+        ArrayList<Song> songList = new ArrayList<>();
+
+        // Only accept music files
+        String songSELECTION = MediaStore.Audio.Media.IS_MUSIC + "=1";
+
+        // By setting end to -1 it will loop until all songs have been found
+        QueryHelper(songSELECTION);
+    }
+
+    // TODO GET SONGS BY ARTIST ID
+    public void getSongsByArtistId(String id) {
+
+        // Only accept music files
+        String songSELECTION = MediaStore.Audio.Media.IS_MUSIC + "=1 and " + MediaStore.Audio.Media.ARTIST_ID + "=" + id;
+
+        // By setting end to -1 it will instead loop until all songs have been found
+        QueryHelper(songSELECTION);
+    }
+
+    // TODO GET SONGS BY ALBUM ID
+    public void getSongsByAlbumId(String id) {
+
+        // Only accept music files
+        String songSELECTION = MediaStore.Audio.Media.IS_MUSIC + "=1 and " + MediaStore.Audio.Media.ALBUM_ID + "=" + id;
+
+        // By setting end to -1 it will instead loop until all songs have been found
+        QueryHelper(songSELECTION);
+    }
+
+    // TODO GET SONGS BY DECADE
+    public void getSongsByDecade(int year) {
+
+        int decade_lower = (int) Math.floor(year / 10d) * 10;
+        int decade_upper = decade_lower + 9;
+
+
+        // Only accept music files and match id
+        String songSELECTION =MediaStore.Audio.Media.YEAR + " >= " + decade_lower + " and " + MediaStore.Audio.Media.YEAR + " <= " + decade_upper +
+                " and " + MediaStore.Audio.Media.IS_MUSIC + "=1";
+
+        // By setting end to -1 it will loop until all songs have been found
+        QueryHelper(songSELECTION);
+    }
+
+    private static AsyncSongQuery asyncSongQuery;
+
+    private static class AsyncSongQuery extends AsyncTask<Cursor, Song, ArrayList<Song>> {
+
+        @Override
+        protected ArrayList<Song> doInBackground(Cursor... cursors) {
+            Log.d(TAG, "AsyncSongQuery: doInBackground");
+            ArrayList<Song> asyncAlbums = new ArrayList<>();
+
+            if(null != cursors[0] && cursors[0].getCount() > 0){
+                Cursor songCursor = cursors[0];
+                try {
+                    for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
+                        Song song = new Song(
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media._ID)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.DATA)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.TITLE)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST_ID)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)),
+                                songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID))
+                        );
+                        publishProgress(song);
+                    }
+                    Log.d(TAG, "AsyncSongQuery: loaded = true");
+                    songCursor.close();
+
+                } catch (Exception e){
+                    Log.d(TAG, "AsyncSongQuery", e);
+                    songCursor.close();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Song... values) {
+            super.onProgressUpdate(values);
+            songList.add(values[0]);
+            mAdapter.notifyItemInserted(mAdapter.addItem());
+        }
+    }
+
 }

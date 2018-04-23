@@ -26,6 +26,12 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.View
 
     private ArrayList<Album> adapterAlbums;
 
+    public static int addedItems = 0;
+
+    public int addItem(){
+        return addedItems++;
+    }
+
     public class ViewHolder extends RecyclerView.ViewHolder {
 
         public ImageView    albumListArtView;

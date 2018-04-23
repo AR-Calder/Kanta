@@ -27,7 +27,8 @@ import android.widget.Toast;
 public class MainActivity extends AppCompatActivity
         implements BottomNavigationView.OnNavigationItemSelectedListener,
             View.OnClickListener,
-            SongListFragment.onSongListFragmentInteractionListener{
+            SongListFragment.onSongListFragmentInteractionListener,
+            MiniPlayerFragment.onMiniPlayerPlayPauseClickListener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
@@ -100,25 +101,25 @@ public class MainActivity extends AppCompatActivity
             switch( state.getState() ) {
                 case PlaybackStateCompat.STATE_PLAYING: {
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
-                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    miniPlayerFragment(true, true);
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
-                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    miniPlayerFragment(false, true);
                     break;
                 }
                 case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT:
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_NEXT");
-                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    miniPlayerFragment(true, true);
                     break;
                 case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS:
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_PREVIOUS");
-                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    miniPlayerFragment(true, true);
                     break;
                 default:
                     Log.d(TAG, "onPlaybackStateChanged to: *STATE_NOT_CARE_ABOUT");
-                    miniPlayerFragment(mMiniPlayerFragment, false);
+                    miniPlayerFragment(false, false);
             }
         }
 
@@ -163,7 +164,7 @@ public class MainActivity extends AppCompatActivity
         getPermission(Manifest.permission.WAKE_LOCK);
         getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
 
-        mMusicLibrary.initLibrary(getApplicationContext());
+        //mMusicLibrary.initLibrary(getApplicationContext());
 
         // --------------------------Load Fragments---------------------------------------------
 
@@ -205,7 +206,7 @@ public class MainActivity extends AppCompatActivity
 
         } else {
             // Permission has already been granted
-            mMusicLibrary.setHasPermission(true, getApplicationContext());
+            MusicLibrary.getInstance().setHasPermission(true, getApplicationContext());
         }
     }
 
@@ -277,18 +278,36 @@ public class MainActivity extends AppCompatActivity
     //---------------------------Fragment Loaders--------------------------------------------
     private MiniPlayerFragment mMiniPlayerFragment;
 
+//    storageFragment = (VolatileStorageFragment) fm.findFragmentByTag(STORAGE_TAG);
+//
+//        if (storageFragment == null){
+//        Log.d(TAG, "onCreate: new storageFragment");
+//
+//        //add the fragment
+//        storageFragment = new VolatileStorageFragment();
+//        fm.beginTransaction().add(storageFragment, STORAGE_TAG).commit();
+//        // set data source
+//        storageFragment.saveList();
+//    } else {
+//        Log.d(TAG, "onCreate: get existing storageFragment");
+//    }
+//
     // Mini Player Fragments
-    private void miniPlayerFragment(MiniPlayerFragment mp_frag, boolean show) {
-        if (mp_frag != null) {
-            FragmentTransaction fm = getSupportFragmentManager().beginTransaction();
-            if (show) {
-                mMiniPlayerFragment = mp_frag;
-                fm.replace(R.id.fragment_container_player, mp_frag);
-            } else if (mMiniPlayerFragment != null){
-                fm.remove(mMiniPlayerFragment);
-            }
-            fm.commit();
+    private void miniPlayerFragment(Boolean isPlaying, boolean show) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        if (show) {
+            MiniPlayerFragment mMiniPlayerFragment = new MiniPlayerFragment();
+            Bundle bundle = new Bundle();
+            bundle.putString("ALBUM_ART", mMusicLibrary.getCurrentSong().getArt());
+            bundle.putString("SONG_TITLE", mMusicLibrary.getCurrentSong().getTitle());
+            bundle.putString("ARTIST_NAME", mMusicLibrary.getCurrentSong().getArtist());
+            bundle.putBoolean("IS_PLAYING", isPlaying);
+            mMiniPlayerFragment.setArguments(bundle);
+            ft.replace(R.id.fragment_container_player, mMiniPlayerFragment);
+        } else if (mMiniPlayerFragment != null){
+            ft.remove(mMiniPlayerFragment);
         }
+        ft.commit();
     }
 
     // List fragments
@@ -421,8 +440,28 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void playSongFromPlaysetIndex(int position) {
-        Log.d(TAG, "getSongByIndexFromSongs: index: " + position);
+        Log.d(TAG, "playSongFromPlaysetIndex: index: " + position);
         mMusicLibrary.setCurrentSong(mMusicLibrary.getSongByIndexFromSongs(position));
         mMediaControllerCompat.getTransportControls().playFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
+    }
+
+    @Override
+    public void playSong() {    // THIS IS NOT onPlay - That is effectively onResume/onNowPlaying
+        Log.d(TAG, "playSong: " + mMusicLibrary.getCurrentSong().getTitle());
+        mMediaControllerCompat.getTransportControls().playFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
+    }
+
+    @Override
+    public void clickMiniPlayerPlayPause(boolean state) {
+        if (state){
+            // is currently playing so pause
+            Log.d(TAG, "clickMiniPlayerPlayPause: pause");
+            mMediaControllerCompat.getTransportControls().pause();
+        } else {
+            // isn't currently playing so resume (play)
+            Log.d(TAG, "clickMiniPlayerPlayPause: play");
+            mMediaControllerCompat.getTransportControls().play();
+        }
+
     }
 }

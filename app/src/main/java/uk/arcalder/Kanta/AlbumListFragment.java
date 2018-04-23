@@ -1,7 +1,10 @@
 package uk.arcalder.Kanta;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -11,6 +14,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
 
 /**
  * Created by arcalder on 07/03/2018.
@@ -28,6 +33,8 @@ public class AlbumListFragment extends Fragment {
 
     private onAlbumListFragmentInteractionListener mAlbumListFragmentCallback;
 
+
+
     // Interface for onInteraction callback
     public interface onAlbumListFragmentInteractionListener {
         void createTitlebarFragmentFromAlbumName(String name);
@@ -36,15 +43,22 @@ public class AlbumListFragment extends Fragment {
 
     // view, adapter & manager
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private static AlbumListAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    // Song List access
-    MusicLibrary mMusicLibrary;
+    // Album content access
+    private MusicProvider mMusicProvider;                   // Class that makes queries easier
+    private static ArrayList<Album> albumList = new ArrayList<>();
+
+    // Fragment data trackers
+    private String bundleArgsArtistName = "ARTIST_NAME";   // Field we look for in bundle
+    private String bundleArtistName = "";                 // The actual value in said field
+    private String titlebarTitle    = "ALBUMS";
 
     public AlbumListFragment(){
         Log.d(TAG, "AlbumListFragment created");
     }
+
 
     @Override
     public void onAttach(Context context) {
@@ -76,8 +90,19 @@ public class AlbumListFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
-        // Get access to song list
-        mMusicLibrary = MusicLibrary.getInstance();
+
+        // Check what type of load to do
+        Bundle args = getArguments();
+        bundleArtistName = args.getString(bundleArgsArtistName);
+
+        if (null == bundleArtistName || bundleArtistName.equals("")){
+            getAllAlbums();
+        } else {
+            getAlbumsByArtistName(bundleArtistName);
+            titlebarTitle = bundleArtistName;
+        }
+
+        mAdapter = new AlbumListAdapter(albumList);
 
         //Retain Fragment to prevent unnecessary recreation
         //setRetainInstance(true);
@@ -106,8 +131,8 @@ public class AlbumListFragment extends Fragment {
         mLayoutManager = new GridLayoutManager(getActivity(), 2);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        Log.d(TAG, "onCreateView: setAdapter to playSet");
-        mAdapter = new AlbumListAdapter(mMusicLibrary.getViewAlbums());
+        Log.d(TAG, "onCreateView: setAdapter to albumList");
+        // NOTE: mAdapter is initialized in onCreate
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.addOnItemTouchListener(new RecyclerViewOnInteractionListener(getContext(), mRecyclerView, new RecyclerViewOnInteractionListener.OnTouchActionListener() {
@@ -124,7 +149,7 @@ public class AlbumListFragment extends Fragment {
             @Override
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
-                Album album = mMusicLibrary.getViewAlbums().get(position);
+                Album album = albumList.get(position);
                 mAlbumListFragmentCallback.createAlbumViewFragmentFromAlbumID(album.getId());
                 mAlbumListFragmentCallback.createTitlebarFragmentFromAlbumName(album.getName());
             }
@@ -152,7 +177,109 @@ public class AlbumListFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        // TODO update title?
+        mAlbumListFragmentCallback.createTitlebarFragmentFromAlbumName(titlebarTitle);
+    }
+
+    // -----------------------------ALL ALBUM QUERY STUFFS---------------------------------
+
+    // COLUMN HELPER
+    private String[] albumColumns = {
+            // See Song.class for member explanation
+            MediaStore.Audio.Albums._ID,
+            MediaStore.Audio.Albums.ALBUM,
+            MediaStore.Audio.Albums.ARTIST,
+            MediaStore.Audio.Albums.ALBUM_ART
+    };
+
+    private void QueryHelper(String selection){
+        Cursor cursor = getActivity().getContentResolver().query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, albumColumns, selection, null, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER);
+        asyncAlbumQuery = new AsyncAlbumQuery();
+        asyncAlbumQuery.execute(cursor);
+    }
+
+    // TODO GET ALL ALBUMS
+    public void getAllAlbums() {
+
+        // No conditions, want everything
+        String albumSELECTION = "";
+
+        // By setting end to -1 it will loop until all results have been found
+        QueryHelper(albumSELECTION);
+    }
+
+    // TODO GET ALBUM BY KEY
+    public void getAlbumByKey(String key) {
+
+        // Only accept albums that match Album key
+        String albumSELECTION = MediaStore.Audio.Albums.ALBUM_KEY + "=" + key;
+
+        // Only interested in 1 result
+        QueryHelper(albumSELECTION);
+    }
+
+
+    // TODO GET ALBUMS BY ARTIST NAME
+    public void getAlbumsByArtistName(String name) {
+
+        // Only accept albums that match artist key
+        String albumSELECTION = MediaStore.Audio.Albums.ARTIST + "=" + name;
+
+        // Only interested in 1 result
+        QueryHelper(albumSELECTION);
+    }
+
+    // TODO GET ALBUMS BY DECADE
+    public void getAlbumByDecade(int year) {
+
+        // Calculate decade range
+        int decade_lower = (int) Math.floor(year / 10d) * 10;
+        int decade_upper = decade_lower + 9;
+
+        // Only accept albums that match decade
+        String albumSELECTION = MediaStore.Audio.Albums.FIRST_YEAR + " >= " + decade_lower + " and " + MediaStore.Audio.Albums.FIRST_YEAR + "<=" + decade_upper;
+
+        // By setting end to -1 it will loop until all results have been found
+        QueryHelper(albumSELECTION);
+    }
+
+
+
+    private static AsyncAlbumQuery asyncAlbumQuery;
+
+    private static class AsyncAlbumQuery extends AsyncTask<Cursor, Album, ArrayList<Album>> {
+
+        @Override
+        protected ArrayList<Album> doInBackground(Cursor... cursors) {
+            Log.d(TAG, "AsyncAlbumQuery: doInBackground");
+            ArrayList<Album> asyncAlbums = new ArrayList<>();
+
+            if(null != cursors[0] && cursors[0].getCount() > 0){
+                Cursor songCursor = cursors[0];
+                try {
+                    for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
+                        String ID           = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums._ID));
+                        String ALBUM        = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM));
+                        String ARTIST       = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums.ARTIST));
+                        String ALBUM_ART    = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART));
+                        publishProgress(new Album(ID, ALBUM, ARTIST, ALBUM_ART));
+                    }
+                    Log.d(TAG, "AsyncAlbumQuery: loaded = true");
+                    songCursor.close();
+
+                } catch (Exception e){
+                    Log.d(TAG, "AsyncAlbumQuery", e);
+                    songCursor.close();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Album... values) {
+            super.onProgressUpdate(values);
+            albumList.add(values[0]);
+            mAdapter.notifyItemInserted(mAdapter.addItem());
+        }
     }
 }
 

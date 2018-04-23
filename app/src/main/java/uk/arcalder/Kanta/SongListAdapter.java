@@ -28,6 +28,12 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
     public static final int PLAYTYPE_FROM_ALBUM = 1;
     public static final int PLAYTYPE_FROM_ARTIST = 2;
 
+    public static int addedItems = 0;
+
+    public int addItem(){
+        return addedItems++;
+    }
+
     private ArrayList<Song> adapterSongs;
 
     public class ViewHolder extends RecyclerView.ViewHolder {

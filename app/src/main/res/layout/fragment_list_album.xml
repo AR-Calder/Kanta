@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
-    <android.support.v7.widget.ListViewCompat
-        android:id="@android:id/list"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/fragment_list_album_recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:foregroundTint="@color/colorSubtitleTextDark">
-    </android.support.v7.widget.ListViewCompat>
+        android:layout_height="match_parent">
 
+    </android.support.v7.widget.RecyclerView>
 
-    <TextView
-        android:id="@android:id/empty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/colorSubtitleTextDark">
-    </TextView>
-
-</LinearLayout>
+</FrameLayout>

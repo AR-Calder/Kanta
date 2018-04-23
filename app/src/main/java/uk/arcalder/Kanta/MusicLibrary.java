@@ -35,7 +35,7 @@ public class MusicLibrary {
     private ArrayList<Album> allAlbums = new ArrayList<>();
 
     public Song getCurrentSong() {
-        return currentSong;
+        return playSet.get(current_position);
     }
 
     public void setCurrentSong(Song song) {
@@ -46,7 +46,15 @@ public class MusicLibrary {
     public static boolean loaded    = false;
     public static boolean hasPermission = true;
 
-    private static int current_position = -1;
+    private static int current_position;
+
+    public int getCurrent_position() {
+        return current_position;
+    }
+
+    public void setCurrent_position(int position) {
+        current_position = position;
+    }
 
     // TODO !!-- Move ALL this stuff into individual fragments --!!
     // use the runnable/handler method and just save the PlaySet/Queue/currentSong/CurrentPlaySetIndex here.
@@ -158,6 +166,11 @@ public class MusicLibrary {
 
     //Init big allSongs
     public void initLibrary(Context context){
+        Log.d(TAG, "Shouldn't be calling from " +context.toString());
+    }
+
+    //Init big allSongs
+    public void initLibrary2(Context context){
         Log.d(TAG, "initSongs");
         if (!hasPermission || loaded) return;
 
@@ -334,7 +347,7 @@ public class MusicLibrary {
 
     // get song by index
     public Song getSongByIndexFromSongs(int index){
-        return allSongs.get(index);
+        return null;                                    // TODO Remove
     }
 
     public int getSizeOfSongs(){

@@ -135,53 +135,37 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         @Override
         public void onPlay() {
             super.onPlay();
-            if( !getAudioFocus() ) {
-                Log.d(TAG, "onPlay: Failed to getAudioFocus");
-                return;
-            }
 
-            //Should be started but sometimes not :s
-            if(!isServiceStarted){
-                Log.d(TAG, "onPlay: Starting Service");
-                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
-            }
-
-            // If index not initialized
-            songIndex = (songIndex != -1) ? songIndex : 0;
-            Song thisSong = mMusicLibrary.getSongByIndexFromSongs(songIndex); // TODO CHANCE THIS LATER
-
-            if (mMediaPlayer.getCurrentPosition() == 0) {
-                try {
-                    FileInputStream inputStream = new FileInputStream(new File(thisSong.getData()));
-                    Log.d(TAG, "onPlay: setDataSource");
-                    Log.d(TAG, "onPlay: getFD = " + inputStream.getFD());
-                    mMediaPlayer.setDataSource(inputStream.getFD());
-                    mMediaPlayer.prepareAsync();
-                    inputStream.close();
-
-                } catch (IOException e) {
-                    Log.e(TAG, "Could not play media from data:", e);
-                    stopSelf();
-                }
-            }
-
-            if(mMediaSession.getController().getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
-                mMediaSession.setActive(true);
-                mMediaPlayer.start();
-                initNoisyReceiver();
-                setMediaPlaybackState(PlaybackState.STATE_PLAYING);
-
-                // Notify
-                currentNotification = buildNotification();
-                startForeground(NOTIFICATION_ID, currentNotification);
-
-            }
-
-            //TODO fix notification?
-            //Notifications
-            currentNotification = buildNotification();
-            startForeground(NOTIFICATION_ID, currentNotification);
-
+            // TODO NOTE: onPlay is really onResume/onNowPlaying, don't try to play songs here
+//            //Might have been playing something else
+//            mMediaPlayer.reset();
+//            initMediaPlayer();
+//
+//            // Try to get focus
+//            if(!getAudioFocus()){
+//                Log.d(TAG, "onPlay: Couldn't get audio focus");
+//            }
+//
+//            //Should be started but sometimes not :s
+//            if(!isServiceStarted){
+//                Log.d(TAG, "onPlay: Starting Service");
+//                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
+//            }
+//
+//            try {
+//                FileInputStream inputStream = new FileInputStream(new File(mMusicLibrary.getCurrentSong().getData()));
+//                Log.d(TAG, "onPlay: setDataSource");
+//                Log.d(TAG, "onPlay: getFD = " + inputStream.getFD());
+//                mMediaPlayer.setDataSource(inputStream.getFD());
+//                mMediaPlayer.prepareAsync();
+//                inputStream.close();
+//
+//            } catch( IOException e ) {
+//                Log.e(TAG, "Could not play media from data:", e);
+//                stopSelf();
+//            }
+//                //afd.close();
+//                initMediaSessionMetadata();
         }
 
         @Override
