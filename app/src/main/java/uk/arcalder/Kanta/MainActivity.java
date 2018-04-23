@@ -1,18 +1,17 @@
 package uk.arcalder.Kanta;
 
 import android.Manifest;
-import android.app.FragmentManager;
 import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.ListFragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -20,35 +19,33 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
 
-
-public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener, View.OnClickListener, SongListFragment.onSongListFragmentInteractionListener{
+public class MainActivity extends AppCompatActivity
+        implements BottomNavigationView.OnNavigationItemSelectedListener,
+            View.OnClickListener,
+            SongListFragment.onSongListFragmentInteractionListener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final int STATE_PAUSED = 0;
-    private static final int STATE_PLAYING = 1;
-
-    private int mCurrentState;
-
-    SongList mSongList;
-
+    // Music service requirements
     private MediaBrowserCompat mMediaBrowserCompat;
     private MediaControllerCompat mMediaControllerCompat;
+    private MediaControllerCompat.TransportControls mTransportControls;
 
-    // Toolbar title
-    TextView titleText;
-    private String titleOrSearch = "TITLE";
+    // Music Library - tracks songs, artist, albums
+    MusicLibrary mMusicLibrary;
 
+    // Store MusicLibrary during rotation/backgrounded events
+    private VolatileStorageFragment storageFragment;
+    private final String STORAGE_TAG = "STORAGE_FRAGMENT";
+
+    // Service connection callback
     private MediaBrowserCompat.ConnectionCallback mMediaBrowserCompatConnectionCallback = new MediaBrowserCompat.ConnectionCallback() {
 
         @Override
@@ -61,17 +58,16 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 MediaSessionCompat.Token token =  mMediaBrowserCompat.getSessionToken();
 
                 // Create MediaControllerCompat
-                MediaControllerCompat mediaController =
+                mMediaControllerCompat =
                         new MediaControllerCompat(MainActivity.this, // context
                         token);
 
                 // Save the controller
                 MediaControllerCompat.setMediaController(MainActivity.this,
-                        mediaController);
+                        mMediaControllerCompat);
 
-                //mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
+                mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
 
-                //MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(songs.get(1).getAUDIO_ID(), null);
             } catch( RemoteException e ) {
                 Log.wtf(TAG, e);
             }
@@ -90,32 +86,51 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         }
     };
 
+    // Controller callback
     private MediaControllerCompat.Callback mMediaControllerCompatCallback = new MediaControllerCompat.Callback() {
 
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
             super.onPlaybackStateChanged(state);
             if( state == null ) {
+                Log.d(TAG, "onPlaybackStateChanged(null)");
                 return;
             }
-            Log.d(TAG, "onPlaybackStateChanged");
+
             switch( state.getState() ) {
                 case PlaybackStateCompat.STATE_PLAYING: {
-                    mCurrentState = STATE_PLAYING;
+                    Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
+                    miniPlayerFragment(new MiniPlayerFragment(), true);
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
-                    mCurrentState = STATE_PAUSED;
+                    Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
+                    miniPlayerFragment(new MiniPlayerFragment(), true);
                     break;
                 }
+                case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT:
+                    Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_NEXT");
+                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    break;
+                case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS:
+                    Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_PREVIOUS");
+                    miniPlayerFragment(new MiniPlayerFragment(), true);
+                    break;
+                default:
+                    Log.d(TAG, "onPlaybackStateChanged to: *STATE_NOT_CARE_ABOUT");
+                    miniPlayerFragment(mMiniPlayerFragment, false);
             }
         }
 
+        @Override
+        public void onSessionDestroyed() {
+            Log.d(TAG, "onSessionDestroyed");
+            super.onSessionDestroyed();
+        }
     };
 
 
-    private VolatileStorageFragment storageFragment;
-    private String STORAGE_TAG = "STORAGE_FRAGMENT";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate Called");
@@ -123,9 +138,9 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //TODO CREATE BASE FRAGMENT WITH THI
 
 
+        // --------------------------Load Existing Library if exists--------------------------
         android.support.v4.app.FragmentManager fm = getSupportFragmentManager();
         storageFragment = (VolatileStorageFragment) fm.findFragmentByTag(STORAGE_TAG);
 
@@ -141,13 +156,25 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             Log.d(TAG, "onCreate: get existing storageFragment");
         }
 
-        mSongList = storageFragment.getList();
-        mSongList.initSongs(getApplicationContext());
+        mMusicLibrary = storageFragment.getList();
+
+        // --------------------------Get Permissions if no permissions--------------------------
+
+        getPermission(Manifest.permission.WAKE_LOCK);
+        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+
+        mMusicLibrary.initLibrary(getApplicationContext());
+
+        // --------------------------Load Fragments---------------------------------------------
+
+        // Load default fragments
+        loadToolbarFragment(new TitlebarFragment(), "HOME");
+        loadSongListFragment(new SongListFragment(), "ALBUM");
 
 
+        // --------------------------Connect to Music Player Service--------------------------
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MusicPlayerService.class),
                 mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
-
 
         Log.d(TAG, "onCreate: connectionCallback supposedly set");
 
@@ -155,62 +182,42 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigationBarBottom);
         BottomNavigationViewHelper.disableShiftMode(navigation);
         navigation.setOnNavigationItemSelectedListener(this);
-
-        // Load default fragments
-        loadToolbarFragment(new TitlebarFragment(), "HOME");
-        loadListFragment(new SongListFragment(), "ALBUM");
-        loadMiniPlayerFragment(new MiniPlayerFragment());
     }
 
 
 
     public void getPermission(String Permission){
 
-        Log.i("Permissions", "Check if have permissions: " + "READ_EXTERNAL_STORAGE");
+        Log.i(TAG, "getPermission: Check if have permissions: " + "READ_EXTERNAL_STORAGE");
         // Request permissions
-        if (ContextCompat.checkSelfPermission(MainActivity.this,
-                Permission)
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Permission)
                 != PackageManager.PERMISSION_GRANTED) {
 
+            Log.d(TAG, "getPermission: Permission not granted");
+            // Permission is not granted so,
+            // request the permission
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Permission},
+                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE); // Once again shite documentation
 
-            Log.i("Permissions", "Permission not granted");
-            // Permission is not granted
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
-                    Permission)) {
+            // The callback method gets the result of the request.
+            Log.i(TAG, "getPermission: Requesting Permission");
 
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-                // No explanation needed; request the permission
-                ActivityCompat.requestPermissions(MainActivity.this,
-                        new String[]{Permission},
-                        MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE); // Once again shite documentation
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-                Log.i("Permissions", "Requesting Permission");
-            }
         } else {
-
-
-
             // Permission has already been granted
-           // TODO ADD TO SONGLIST
+            mMusicLibrary.setHasPermission(true, getApplicationContext());
         }
     }
 
+    // -----------------------------------Life Cycle---------------------------------------------------
     @Override
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart Called");
 
         mMediaBrowserCompat.connect();
-        getPermission(Manifest.permission.WAKE_LOCK);
-        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+
+
     }
 
     @Override
@@ -242,13 +249,14 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-                    // TODO ADD THIS TO SONG LIST
+                    mMusicLibrary.setHasPermission(true, getApplicationContext());
 
                 } else {
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(getApplicationContext(), (CharSequence)"PERMISSION DENIED", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), (CharSequence)"PERMISSION DENIED, requires\nREAD_EXTERNAL_STORAGE to continue!", Toast.LENGTH_LONG).show();
+                    mMusicLibrary.setHasPermission(false, getApplicationContext());
                 }
                 return;
             }
@@ -258,19 +266,36 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         }
     }
 
-    // Mini Player Fragments
-    private void loadMiniPlayerFragment(Fragment mp_frag) {
-        if (mp_frag != null) {
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        // TODO fragment stack stuff here
 
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container_player, mp_frag)
-                    .commit();
+    }
+
+
+    //---------------------------Fragment Loaders--------------------------------------------
+    private MiniPlayerFragment mMiniPlayerFragment;
+
+    // Mini Player Fragments
+    private void miniPlayerFragment(MiniPlayerFragment mp_frag, boolean show) {
+        if (mp_frag != null) {
+            FragmentTransaction fm = getSupportFragmentManager().beginTransaction();
+            if (show) {
+                mMiniPlayerFragment = mp_frag;
+                fm.replace(R.id.fragment_container_player, mp_frag);
+            } else if (mMiniPlayerFragment != null){
+                fm.remove(mMiniPlayerFragment);
+            }
+            fm.commit();
         }
     }
 
     // List fragments
-    private boolean loadListFragment(SongListFragment list_frag, String TAG) {
+    private boolean loadSongListFragment(SongListFragment list_frag, String TAG) {
+        if (TAG.equals("HOME")){
+            mMusicLibrary.setViewSongs(mMusicLibrary.getSongs());
+        }
         // If Fragment doesn't exist
         if (list_frag != null && null == getSupportFragmentManager().findFragmentByTag(TAG)) {
 
@@ -307,6 +332,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         return false;
     }
 
+    // ------------------------------Main Navigation --------------------------------
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
@@ -334,10 +360,10 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 title_fragment = new TitlebarFragment();
                 try {
                     // TODO put this somewhere else.
-                    Song thisSong = mSongList.getSongs().get(2);
+                    Song thisSong = mMusicLibrary.getSongs().get(2);
                     Log.d(TAG, String.valueOf(thisSong.getTitle()));
                     Log.d(TAG, String.valueOf(thisSong.getId()));
-                    mSongList.setCurrentSong(thisSong);
+                    mMusicLibrary.setCurrentSong(thisSong);
                     MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
                 } catch (Exception e){
                     Log.wtf(TAG, e);
@@ -350,10 +376,10 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                 title_fragment = new SearchFragment();
                 try {
                     // TODO put this somewhere else.
-                    Song thisSong = mSongList.getSongs().get(0);
+                    Song thisSong = mMusicLibrary.getSongs().get(0);
                     Log.d(TAG, String.valueOf(thisSong.getTitle()));
                     Log.d(TAG, String.valueOf(thisSong.getId()));
-                    mSongList.setCurrentSong(thisSong);
+                    mMusicLibrary.setCurrentSong(thisSong);
                     MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
                 } catch (Exception e){
                     Log.wtf(TAG, e);
@@ -376,7 +402,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             RESULT = loadToolbarFragment(title_fragment, TITLE_TAG);
         }
         if (null != list_fragment) {
-            RESULT = loadListFragment(list_fragment, "ALBUM");
+            RESULT = loadSongListFragment(list_fragment, "ALBUM");
         }
 
         return RESULT;
@@ -394,7 +420,9 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     }
 
     @Override
-    public void onArticleSelected(int position) {
-        Log.d(TAG, "onArticleSelected");
+    public void playSongFromPlaysetIndex(int position) {
+        Log.d(TAG, "getSongByIndexFromSongs: index: " + position);
+        mMusicLibrary.setCurrentSong(mMusicLibrary.getSongByIndexFromSongs(position));
+        mMediaControllerCompat.getTransportControls().playFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
     }
 }

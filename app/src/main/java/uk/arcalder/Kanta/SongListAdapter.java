@@ -32,13 +32,11 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
 
     public class ViewHolder extends RecyclerView.ViewHolder {
 
-        public ImageView    songListArtView;
         public TextView     songListTitleView;
         public TextView     songListArtistAlbumView;
 
         public ViewHolder(View itemView) {
             super(itemView);
-            this.songListArtView = (ImageView) itemView.findViewById(R.id.song_item_art);
             this.songListTitleView = (TextView) itemView.findViewById(R.id.song_item_title);
             this.songListArtistAlbumView = (TextView) itemView.findViewById(R.id.song_item_artist_album);
         }
@@ -69,18 +67,19 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
             return;
         }
 
-        // Set art
-        if (song.getArt() != null){
-            // Picasso doesn't need context, glide does
-            // Glide is apparently better, but I can't be bothered adapting
-            // all the code just for one lib
-            // As per http://square.github.io/picasso/
-            try {
-                Picasso.get().load(song.getArt()).resize(40, 40).centerCrop().into(holder.songListArtView);
-            } catch (IllegalArgumentException iae){
-                Log.d(TAG, "Picasso tried to load song.getArt = " +song.getArt());
-            }
-        }
+        // TODO This works, but don't like how it looks rn
+//        // Set art
+//        if (song.getArt() != null){
+//            // Picasso doesn't need context, glide does
+//            // Glide is apparently better, but I can't be bothered adapting
+//            // all the code just for one lib
+//            // As per http://square.github.io/picasso/
+//            try {
+//                Picasso.get().load(song.getArt()).resize(40, 40).centerCrop().into(holder.songListArtView);
+//            } catch (IllegalArgumentException iae){
+//                Log.d(TAG, "Picasso tried to load song.getArt = " +song.getArt());
+//            }
+//        }
 
         // Set Title
         holder.songListTitleView.setText(song.getTitle());

@@ -10,21 +10,48 @@ public class Album {
     // Designed to be used with Song
 
     // MEMBERS:
-    private String ALBUM_KEY = "";
-    private String ALBUM = "";
+    private String id = "";
+    private String name = "";
+    private String artist = "";
+    private String albumArt = "";
 
     // CONSTRUCTOR
-    public Album(String ALBUM_KEY, String ALBUM) {
-        this.ALBUM_KEY = ALBUM_KEY;    // Key associated with album
-        this.ALBUM = ALBUM;        // Name of album
+    public Album(String album_id, String album, String artist,  String album_art) {
+        this.id = album_id;    // ID associated with album
+        this.name = name;       // Name of album
+        this.artist = artist;
+        this.albumArt = album_art;
     }
 
-    // GETTERS
-    public String getALBUM_KEY() {
-        return ALBUM_KEY;
+    public String getId() {
+        return id;
     }
 
-    public String getALBUM() {
-        return ALBUM;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getArtist() {
+        return artist;
+    }
+
+    public void setArtist(String artist) {
+        this.artist = artist;
+    }
+
+    public String getAlbumArt() {
+        return albumArt;
+    }
+
+    public void setAlbumArt(String albumArt) {
+        this.albumArt = albumArt;
     }
 }

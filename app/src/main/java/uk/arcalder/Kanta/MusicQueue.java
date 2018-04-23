@@ -10,7 +10,7 @@ import java.util.ArrayList;
  */
 
 public class MusicQueue {
-    private ArrayList<Long> songQueue = new ArrayList<>(); // stores songQueue songs by id
+    private ArrayList<Long> songQueue = new ArrayList<>(); // stores songQueue allSongs by id
 
     // Constructor
     public MusicQueue(Context context) {
@@ -33,7 +33,7 @@ public class MusicQueue {
         songQueue.add(songId);
     }
 
-    // Add multiple songs by IDs to queue
+    // Add multiple allSongs by IDs to queue
     public void addSongs(@NonNull ArrayList<Long> SongIds) {
         songQueue.addAll(SongIds);
     }
@@ -43,7 +43,7 @@ public class MusicQueue {
         return songQueue.remove(songId);
     }
 
-    // Remove multiple songs by ID list from queue
+    // Remove multiple allSongs by ID list from queue
     public boolean removeSongs(ArrayList<Long> songIds) {
         return songQueue.removeAll(songIds);
     }

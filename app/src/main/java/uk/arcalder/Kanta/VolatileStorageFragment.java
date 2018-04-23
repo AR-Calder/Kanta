@@ -13,7 +13,7 @@ import android.support.v4.app.Fragment;
 public class VolatileStorageFragment extends Fragment {
 
     // Object to be retained
-    private SongList mSongList;
+    private MusicLibrary mMusicLibrary;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -22,10 +22,10 @@ public class VolatileStorageFragment extends Fragment {
     }
 
     public void saveList(){
-        mSongList = SongList.getInstance();
+        mMusicLibrary = MusicLibrary.getInstance();
     }
 
-    public SongList getList(){
-        return mSongList;
+    public MusicLibrary getList(){
+        return mMusicLibrary;
     }
 }

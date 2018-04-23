@@ -9,6 +9,7 @@ public class Song{
     //  metadata
     private String title        = "";
     private String artist       = "";
+    private String artist_id    = "";
     private String album        = "";
     private String album_id     = "";
     private String art          = "";
@@ -16,11 +17,12 @@ public class Song{
     private String genre        = "";
     private String genre_id     = "";
 
-    public Song(String id, String data, String title, String album, String artist, String album_id) {
+    public Song(String id, String data, String title, String artist, String artist_id, String album, String album_id) {
         this.id    = id;
         this.data  = data;
         this.title = title;
         this.artist = artist;
+        this.artist_id = artist_id;
         this.album = album;
         this.album_id = album_id;
     }

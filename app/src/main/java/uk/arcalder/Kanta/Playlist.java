@@ -60,7 +60,7 @@ public class Playlist {
     }
 
     /**
-     * Returns a list with all the songs inside this Playlist.
+     * Returns a list with all the allSongs inside this Playlist.
      * @return
      */
     public ArrayList<Long> getSongIds() {

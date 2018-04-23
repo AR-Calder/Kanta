@@ -10,21 +10,48 @@ public class Artist {
     // Designed to be used with Song
 
     // MEMBERS:
-    private String ARTIST_KEY = "";
-    private String ARTIST = "";
+    private String id = "";
+    private String name = "";
+    private String numOfTracks = "";
+    private String numOfAlbums = "";
 
     // CONSTRUCTOR
-    public Artist(String ARTIST_KEY, String ARTIST) {
-        this.ARTIST_KEY = ARTIST_KEY;   // Key associated with artist
-        this.ARTIST = ARTIST;       // Name of Artist
+    public Artist(String id1, String name1, String numOfTracks1, String numOfAlbums1) {
+        this.id = id1;    // ID associated with album
+        this.name = name1;       // Name of album
+        this.numOfTracks = numOfTracks1;
+        this.numOfAlbums = numOfAlbums1;
     }
 
-    // GETTERS
-    public String getARTIST_KEY() {
-        return ARTIST_KEY;
+    public String getId() {
+        return id;
     }
 
-    public String getARTIST() {
-        return ARTIST;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNumOfTracks() {
+        return numOfTracks;
+    }
+
+    public void setNumOfTracks(String numOfTracks) {
+        this.numOfTracks = numOfTracks;
+    }
+
+    public String getNumOfAlbums() {
+        return numOfAlbums;
+    }
+
+    public void setNumOfAlbums(String numOfAlbums) {
+        this.numOfAlbums = numOfAlbums;
     }
 }

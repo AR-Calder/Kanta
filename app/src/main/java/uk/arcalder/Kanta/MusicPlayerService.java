@@ -16,18 +16,14 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.MediaPlayer;
-import android.media.browse.MediaBrowser;
-import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
-import android.service.media.MediaBrowserService;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
@@ -94,7 +90,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private NotificationManager mNotificationManager;
 
     // Instance of SongList
-    private SongList mSongList;
+    private MusicLibrary mMusicLibrary;
 
     // Audio Focus Tracker
     private int mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
@@ -133,7 +129,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private NotificationCompat.Action mNextAction;
     private NotificationCompat.Action mPrevAction;
 
-    // Media Playback
+    // TODO ------------------------------Media Playback---------------------------------------
     private MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
 
         @Override
@@ -152,7 +148,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
             // If index not initialized
             songIndex = (songIndex != -1) ? songIndex : 0;
-            Song thisSong = mSongList.getSongByIndexFromSongs(songIndex); // TODO CHANCE THIS LATER
+            Song thisSong = mMusicLibrary.getSongByIndexFromSongs(songIndex); // TODO CHANCE THIS LATER
 
             if (mMediaPlayer.getCurrentPosition() == 0) {
                 try {
@@ -271,6 +267,22 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         }
 
+        @Override
+        public void onSkipToNext() {
+            Song nextSong = mMusicLibrary.getCurrentSong(); // TODO GET NEXT SONG
+            if (null != nextSong){
+                mMusicLibrary.setCurrentSong(nextSong);
+
+            }
+            super.onSkipToNext();
+            // TODO REMOVE - JUST FOR TESTING
+            onPlay();
+        }
+
+        @Override
+        public void onSkipToPrevious() {
+            super.onSkipToPrevious();
+        }
 
 
     };
@@ -312,7 +324,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                                 this,
                                 PlaybackState.ACTION_PLAY)).build();
 
-        mSongList = SongList.getInstance();
+        mMusicLibrary = MusicLibrary.getInstance();
         initMediaPlayer();
         initMediaSession();
         initNoisyReceiver();
@@ -335,18 +347,27 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         releaseAudioFocus();
-        Log.d(TAG, "onDestroy: mediaplayer.stop()");
-        mMediaPlayer.stop();
-        Log.d(TAG, "onDestroy: mediaplayer.release()");
-        mMediaPlayer.release();
-        Log.d(TAG, "onDestroy: mediasession.release()");
-        mMediaSession.release();
+        removeNoisyReceiver();
+        if (mMediaPlayer != null) {
+            Log.d(TAG, "onDestroy: mediaplayer.stop()");
+            mMediaPlayer.stop();
+            Log.d(TAG, "onDestroy: mediaplayer.reset()");
+            mMediaPlayer.reset();
+            Log.d(TAG, "onDestroy: mediaplayer.release()");
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
+        if (mMediaSession != null) {
+            Log.d(TAG, "onDestroy: mediasession.release()");
+            mMediaSession.release();
+            mMediaSession = null;
+        }
+
         Log.d(TAG, "onDestroy: stop Foreground");
         stopForeground(true);
-        releaseAudioFocus();
-        removeNoisyReceiver();
 
-        Log.d(TAG, "onDestroy: cancel song list generation");
+
+        //Log.d(TAG, "onDestroy: cancelInitSongs");
         // TODO if for some reason the app is closed before the library is able to load
         // Seemed like a good idea but crashes
         // "Attempt to invoke virtual method 'boolean uk.arcalder.Kanta.SongList$AsyncInitSongs.isCancelled()' on a null object reference"
@@ -363,13 +384,14 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         // Seemed like a good idea but crashes
         // "Attempt to invoke virtual method 'boolean uk.arcalder.Kanta.SongList$AsyncInitSongs.isCancelled()' on a null object reference"
         // mSongList.cancelInitSongs();
-        Log.d(TAG, "onTaskRemoved: super.onTaskRemoved");
-        if (rootIntent != null) {
-            super.onTaskRemoved(rootIntent);
-        }
 
         // Want to kill service if user wishes to close it.
-        onDestroy();
+        Log.d(TAG, "onTaskRemoved: stopSelf()");
+        stopSelf();
+        if (rootIntent != null) {
+            Log.d(TAG, "onTaskRemoved: super.onTaskRemoved");
+            super.onTaskRemoved(rootIntent);
+        }
     }
 
     private void initMediaController() {
@@ -404,7 +426,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     private void initMediaPlayer() {
         mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
-        mMediaPlayer = new MediaPlayer();
+        mMediaPlayer = (mMediaPlayer == null) ? new MediaPlayer() : mMediaPlayer;
         mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         mMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -561,7 +583,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         Log.d(TAG, "onCompletion");
         if( mMediaPlayer != null ) {
             // TODO get next song? (and then don't release)
-            mMediaPlayer.release();
+            mMediaSession.getController().getTransportControls().skipToNext();
         }
     }
 
@@ -601,7 +623,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         Log.d(TAG, "Creating notification");
 
         // Get current song
-        Song current_song = mSongList.getCurrentSong();
+        Song current_song = mMusicLibrary.getCurrentSong();
 
 
         mPlaybackState = mMediaController.getPlaybackState();

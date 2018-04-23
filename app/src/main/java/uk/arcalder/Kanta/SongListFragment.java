@@ -5,14 +5,13 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.ListFragment;
+import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 
 /**
  * Created by Zynch on 07/03/2018.
@@ -31,7 +30,7 @@ public class SongListFragment extends Fragment {
 
     // Interface for onInteraction callback
     public interface onSongListFragmentInteractionListener {
-        void onArticleSelected(int position);
+        void playSongFromPlaysetIndex(int position);
     }
 
     // view, adapter & manager
@@ -40,15 +39,12 @@ public class SongListFragment extends Fragment {
     private RecyclerView.LayoutManager mLayoutManager;
 
     // Song List access
-    SongList mSongList;
+    MusicLibrary mMusicLibrary;
 
     public SongListFragment(){
         Log.d(TAG, "SongListFragment created");
     }
 
-    public static SongListFragment newInstance(){
-        return new SongListFragment();
-    }
 
     @Override
     public void onAttach(Context context) {
@@ -81,8 +77,13 @@ public class SongListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         // Get access to song list
-        mSongList = SongList.getInstance();
+        mMusicLibrary = MusicLibrary.getInstance();
 
+        //Retain Fragment to prevent unnecessary recreation
+        //setRetainInstance(true);
+        // ^ This won't work because:
+        // "Retaining an instance will not work when added to the backstack"
+        //https://stackoverflow.com/questions/11160412/why-use-fragmentsetretaininstanceboolean
     }
 
     @Nullable
@@ -106,8 +107,28 @@ public class SongListFragment extends Fragment {
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         Log.d(TAG, "onCreateView: setAdapter to playSet");
-        mAdapter = new SongListAdapter(mSongList.getSongs());
+        mAdapter = new SongListAdapter(mMusicLibrary.getViewSongs());
         mRecyclerView.setAdapter(mAdapter);
+        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+        mRecyclerView.addOnItemTouchListener(new RecyclerViewOnInteractionListener(getContext(), mRecyclerView, new RecyclerViewOnInteractionListener.OnTouchActionListener(){
+
+            @Override
+            public void onLeftSwipe(View view, int position) {
+                Log.d(TAG, "onLeftSwipe");
+            }
+
+            @Override
+            public void onRightSwipe(View view, int position) {
+                Log.d(TAG, "onRightSwipe");
+            }
+
+            @Override
+            public void onClick(View view, int position) {
+                Log.d(TAG, "onClick");
+                mSongListFragmentCallback.playSongFromPlaysetIndex(position);
+                mMusicLibrary.setPlaySet(mMusicLibrary.getViewSongs());
+            }
+        }));
 
         return rootView;
     }
