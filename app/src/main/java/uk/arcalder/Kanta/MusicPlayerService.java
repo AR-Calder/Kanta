@@ -134,8 +134,25 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onPlay() {
-            super.onPlay();
 
+            if( !mMediaPlayer.isPlaying() ) {
+                mMediaPlayer.start();
+                //Doesn't update itself
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+            }
+
+            // Try to get focus
+            if(!getAudioFocus()){
+                Log.d(TAG, "onPlayFromMediaId: Couldn't get audio focus");
+            }
+
+            //Should be started but sometimes not :s
+            if(!isServiceStarted){
+                Log.d(TAG, "onPlay: Starting Service");
+                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
+            }
+
+            super.onPlay();
             // TODO NOTE: onPlay is really onResume/onNowPlaying, don't try to play songs here
 //            //Might have been playing something else
 //            mMediaPlayer.reset();
@@ -175,7 +192,6 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             if( mMediaPlayer.isPlaying() ) {
                 mMediaPlayer.pause();
                 removeNoisyReceiver();
-                setMediaPlaybackState(PlaybackState.STATE_PAUSED);
                 //TODO fix?
                 //Notifications
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
@@ -253,14 +269,16 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onSkipToNext() {
-            Song nextSong = mMusicLibrary.getCurrentSong(); // TODO GET NEXT SONG
-            if (null != nextSong){
+            Song nextSong = mMusicLibrary.getNextSongFromAny(); // TODO GET NEXT SONG
+            if (null != nextSong) {
+                Log.d(TAG, "onSkipToNext: nextSong was null");
                 mMusicLibrary.setCurrentSong(nextSong);
-
+            } else {
+                Log.d(TAG, "onSkipToNext: nextSong was null");
             }
-            super.onSkipToNext();
             // TODO REMOVE - JUST FOR TESTING
             onPlay();
+            super.onSkipToNext();
         }
 
         @Override
@@ -409,17 +427,19 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void initMediaPlayer() {
-        mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
-        mMediaPlayer = (mMediaPlayer == null) ? new MediaPlayer() : mMediaPlayer;
-        mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-        mMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setFlags(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build());
-        mMediaPlayer.setVolume(1.0f, 1.0f);
+        mAudioManager = (mAudioManager == null) ? (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE) : mAudioManager;
+        if ( mMediaPlayer == null) {
+            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+            mMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setFlags(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build());
+            mMediaPlayer.setVolume(1.0f, 1.0f);
 
-        mMediaPlayer.setOnPreparedListener(this);
-        mMediaPlayer.setOnCompletionListener(this);
+            mMediaPlayer.setOnPreparedListener(this);
+            mMediaPlayer.setOnCompletionListener(this);
+        }
     }
 
     private void initMediaSession() {
@@ -436,6 +456,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaSession.setPlaybackState( new PlaybackStateCompat.Builder()
                                                 .setActions(
                                                     PlaybackState.ACTION_PLAY |
+                                                    PlaybackState.ACTION_SKIP_TO_NEXT |
+                                                    PlaybackState.ACTION_SKIP_TO_PREVIOUS |
                                                     PlaybackState.ACTION_PLAY_PAUSE).build());
 
         Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);

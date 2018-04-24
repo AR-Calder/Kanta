@@ -364,11 +364,6 @@ public class MusicLibrary {
                 return playSet.get(current_position);
             }
             Log.d(TAG, "getCurrent: getting playSet song");
-
-        } else if (!allSongs.isEmpty()){
-            // get a random song
-            Log.d(TAG, "getCurrent: getting random song");
-            allSongs.get(ThreadLocalRandom.current().nextInt(0, allSongs.size()));
         }
 
         // Literally nothing
@@ -400,10 +395,7 @@ public class MusicLibrary {
     // get next queued song
     public Song getNextQueueSong(){
         Log.d(TAG, "getNextQueueSong");
-        if (!songQueue.isEmpty()) {
-            return songQueue.remove(0);
-        }
-        return null;
+        return songQueue.remove(0);
     }
 
     // add a song to the queue

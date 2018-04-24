@@ -87,6 +87,8 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+    private static int currentPlaybackState;
+
     // Controller callback
     private MediaControllerCompat.Callback mMediaControllerCompatCallback = new MediaControllerCompat.Callback() {
 
@@ -101,24 +103,29 @@ public class MainActivity extends AppCompatActivity
             switch( state.getState() ) {
                 case PlaybackStateCompat.STATE_PLAYING: {
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
+                    currentPlaybackState = PlaybackStateCompat.STATE_PLAYING;
                     miniPlayerFragment(true, true);
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
-                    Log.d(TAG, "onPlaybackStateChanged to: STATE_PLAYING");
+                    Log.d(TAG, "onPlaybackStateChanged to: STATE_PAUSED");
+                    currentPlaybackState = PlaybackStateCompat.STATE_PAUSED;
                     miniPlayerFragment(false, true);
                     break;
                 }
                 case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT:
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_NEXT");
+                    currentPlaybackState = PlaybackStateCompat.STATE_SKIPPING_TO_NEXT;
                     miniPlayerFragment(true, true);
                     break;
                 case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS:
                     Log.d(TAG, "onPlaybackStateChanged to: STATE_SKIPPING_TO_PREVIOUS");
+                    currentPlaybackState = PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS;
                     miniPlayerFragment(true, true);
                     break;
                 default:
                     Log.d(TAG, "onPlaybackStateChanged to: *STATE_NOT_CARE_ABOUT");
+                    currentPlaybackState = PlaybackStateCompat.STATE_NONE;
                     miniPlayerFragment(false, false);
             }
         }
@@ -226,6 +233,9 @@ public class MainActivity extends AppCompatActivity
         super.onResume();
         Log.d(TAG, "onResume Called");
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        miniPlayerFragment((currentPlaybackState == PlaybackStateCompat.STATE_PLAYING),
+                (currentPlaybackState != PlaybackStateCompat.STATE_NONE &&
+                        currentPlaybackState != PlaybackStateCompat.STATE_STOPPED));
     }
 
     @Override
@@ -462,6 +472,5 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "clickMiniPlayerPlayPause: play");
             mMediaControllerCompat.getTransportControls().play();
         }
-
     }
 }
