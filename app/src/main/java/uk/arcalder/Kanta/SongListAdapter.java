@@ -28,7 +28,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
     public static final int PLAYTYPE_FROM_ALBUM = 1;
     public static final int PLAYTYPE_FROM_ARTIST = 2;
 
-    public static int addedItems = 0;
+    public int addedItems = 0;
 
     public int addItem(){
         return addedItems++;
@@ -72,20 +72,6 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
             Log.e(TAG, "onBindViewHolder: ", e);
             return;
         }
-
-        // TODO This works, but don't like how it looks rn
-//        // Set art
-//        if (song.getArt() != null){
-//            // Picasso doesn't need context, glide does
-//            // Glide is apparently better, but I can't be bothered adapting
-//            // all the code just for one lib
-//            // As per http://square.github.io/picasso/
-//            try {
-//                Picasso.get().load(song.getArt()).resize(40, 40).centerCrop().into(holder.songListArtView);
-//            } catch (IllegalArgumentException iae){
-//                Log.d(TAG, "Picasso tried to load song.getArt = " +song.getArt());
-//            }
-//        }
 
         // Set Title
         holder.songListTitleView.setText(song.getTitle());

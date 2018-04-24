@@ -83,6 +83,9 @@ public class SongListFragment extends Fragment {
             throw new ClassCastException(getActivity().toString()
                     + " must implement OnFragmentInteractionListener");
         }
+
+
+
     }
 
     @Override
@@ -90,31 +93,40 @@ public class SongListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
 
+        songList = new ArrayList<>();
+
         // Get access to song list
         mMusicLibrary = MusicLibrary.getInstance();
 
-        if (savedInstanceState == null) {
-            // Check what type of load to do
-            Bundle args = getArguments();
-            try {
-                bundleAlbumId = args.getString(bundleArgsAlbumId);
-            } catch (Exception e) {
-                Log.w(TAG, "onCreate: missing bundle args: ");
-            }
-            if (null == bundleAlbumId || bundleAlbumId.equals("")) {
-                getAllSongs();
-                titlebarTitle = "ALBUMS";
-            } else {
-                getSongsByAlbumId(bundleArgsAlbumId);
-            }
+        Bundle args = getArguments();
+        try {
+            bundleAlbumId = args.getString(bundleArgsAlbumId);
+        } catch (Exception e) {
+            Log.w(TAG, "onCreate: missing bundle args: ");
+        }
+        if (null == bundleAlbumId || bundleAlbumId.equals("")) {
+            Log.d(TAG, "onCreate: getAllSongs");
+            getAllSongs();
+            titlebarTitle = "ALBUMS";
+        } else {
+            Log.d(TAG, "onCreate: getSongsByAlbumId");
+            getSongsByAlbumId(bundleArgsAlbumId);
         }
 
         mAdapter = new SongListAdapter(songList);
+
         //Retain Fragment to prevent unnecessary recreation
         //setRetainInstance(true);
         // ^ This won't work because:
         // "Retaining an instance will not work when added to the backstack"
         //https://stackoverflow.com/questions/11160412/why-use-fragmentsetretaininstanceboolean
+    }
+
+    @Override
+    public void onResume() {
+        Log.d(TAG, "onResume");
+
+        super.onResume();
     }
 
     @Nullable
