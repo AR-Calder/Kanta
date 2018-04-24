@@ -1,6 +1,7 @@
 package uk.arcalder.Kanta;
 
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
@@ -50,14 +51,14 @@ public class SongListFragment extends Fragment {
     MusicLibrary mMusicLibrary;
 
     // Fragment data trackers
-    private String bundleArgsAlbumId = "ALBUM_ID";   // Field we look for in bundle
-    private String bundleAlbumId = "";                 // The actual value in said field
-    private String titlebarTitle    = "";
+    private String bundleParentType = "PARENT_TYPE";    // Field we look for in bundle,
+    private String parentType = "";                     // The value should be used in switch statement
+    private String bundleArgsAlbumId = "ALBUM_ID";      // Field we look for in bundle
+    private String AlbumId = "";                        // The actual value in said field
 
     public SongListFragment(){
-        Log.d(TAG, "SongListFragment created");
+        Log.d(TAG, "new SongListFragment");
     }
-
 
     @Override
     public void onAttach(Context context) {
@@ -93,6 +94,8 @@ public class SongListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
 
+        mContentResolver = getActivity().getContentResolver();
+
         songList = new ArrayList<>();
 
         // Get access to song list
@@ -100,17 +103,19 @@ public class SongListFragment extends Fragment {
 
         Bundle args = getArguments();
         try {
-            bundleAlbumId = args.getString(bundleArgsAlbumId);
+            parentType = args.getString(bundleParentType);
+            AlbumId = args.getString(bundleArgsAlbumId);
         } catch (Exception e) {
             Log.w(TAG, "onCreate: missing bundle args: ");
         }
-        if (null == bundleAlbumId || bundleAlbumId.equals("")) {
+
+        // get songs by album id or get all songs
+        if ((null != parentType && !parentType.equals("") && null != AlbumId && !AlbumId.equals(""))){
+            Log.d(TAG, "onCreate: getSongsFrom "+parentType+" ByAlbumId ("+AlbumId+")");
+            getSongsByAlbumId(bundleArgsAlbumId);
+        } else {
             Log.d(TAG, "onCreate: getAllSongs");
             getAllSongs();
-            titlebarTitle = "ALBUMS";
-        } else {
-            Log.d(TAG, "onCreate: getSongsByAlbumId");
-            getSongsByAlbumId(bundleArgsAlbumId);
         }
 
         mAdapter = new SongListAdapter(songList);
@@ -181,13 +186,19 @@ public class SongListFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        // Remove listener when activity is destroyed
+
+        if (null != asyncSongQuery && !asyncSongQuery.isCancelled()){
+            asyncSongQuery.cancel(true);
+        }
+        // Remove listener when fragment is destroyed
         mSongListFragmentCallback = null;
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+        // Remove listener when fragment is not visible
+        mSongListFragmentCallback = null;
     }
 
     @Override
@@ -207,8 +218,10 @@ public class SongListFragment extends Fragment {
             MediaStore.Audio.Media.ALBUM_ID,
     };
 
+    private ContentResolver mContentResolver;
+
     private void QueryHelper(String selection){
-        Cursor cursor = getActivity().getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songColumns, selection, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+        Cursor cursor = mContentResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songColumns, selection, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
         asyncSongQuery = new AsyncSongQuery();
         asyncSongQuery.execute(cursor);
     }
@@ -262,7 +275,7 @@ public class SongListFragment extends Fragment {
 
     private static AsyncSongQuery asyncSongQuery;
 
-    private static class AsyncSongQuery extends AsyncTask<Cursor, Song, ArrayList<Song>> {
+    private class AsyncSongQuery extends AsyncTask<Cursor, Song, ArrayList<Song>> {
 
         @Override
         protected ArrayList<Song> doInBackground(Cursor... cursors) {
@@ -273,6 +286,11 @@ public class SongListFragment extends Fragment {
                 Cursor songCursor = cursors[0];
                 try {
                     for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
+                        if(isCancelled()){
+                            // Prevents tasks continuing after fragment destroy or detach
+                            Log.d(TAG, "AsyncSongQuery cancelled");
+                            break;
+                        }
                         Song song = new Song(
                                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media._ID)),
                                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.DATA)),
@@ -282,6 +300,22 @@ public class SongListFragment extends Fragment {
                                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)),
                                 songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID))
                         );
+
+
+                        try (Cursor artCursor = mContentResolver.query(
+                                MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
+                                new String[]{MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums.ALBUM_ART},
+                                MediaStore.Audio.Albums._ID + "="+song.getAlbum_id(),
+                                null,
+                                MediaStore.Audio.Albums.DEFAULT_SORT_ORDER)){
+                            artCursor.moveToFirst();
+                            song.setArt(artCursor.getString(artCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART)));
+                            // Its Weird I know, but https://stackoverflow.com/questions/33138006/album-info-does-not-contain-album-id-column-error
+                            song.setAlbum_id(artCursor.getString(artCursor.getColumnIndex(MediaStore.Audio.Albums._ID)));
+                        } catch (NullPointerException npe){
+                            Log.e(TAG, "Could not get art: ");
+                        }
+                        // Update List as we go
                         publishProgress(song);
                     }
                     Log.d(TAG, "AsyncSongQuery: loaded = true");

@@ -18,14 +18,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <ImageButton
-            android:id="@+id/btn_expand_player"
+        <ImageView
+            android:id="@+id/album_art_mini"
             android:layout_width="33dp"
             android:layout_height="33dp"
             android:layout_marginStart="8dp"
             android:background="@android:color/transparent"
-            android:src="@drawable/ic_sync_black_24dp"
-            android:tint="@color/colorTitleTextDark"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 

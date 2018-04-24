@@ -11,10 +11,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.Objects;
 
 /**
@@ -72,24 +74,36 @@ public class MiniPlayerFragment extends Fragment implements View.OnClickListener
         Log.d(TAG, "onCreateView");
         view = inflater.inflate(R.layout.fragment_mini_player, null);
 
+
+
+
+
         // Song Title
         TextView songTextView = (TextView) view.findViewById(R.id.song_title_mini);
+
         if (null != songTextView) {
-            songTextView.setText(songTitle);
+            songTextView.setText(artistName); // TODO fix the layout id's instead of switching these
         }
 
         // Artist name
         TextView artistTextView = (TextView) view.findViewById(R.id.artist_name_mini);
         if (null != artistTextView) {
-            artistTextView.setText(artistName);
+            artistTextView.setText(songTitle); // TODO fix the layout id's instead of switching these
         }
+        artistTextView.setOnClickListener(this);
 
         // Album Art Button
-        ImageButton albumButton = (ImageButton) view.findViewById(R.id.btn_expand_player);
-        albumButton.setOnClickListener(this);
+        ImageView albumArt = (ImageView) view.findViewById(R.id.album_art_mini);
 
-        if (null != albumArt && !Objects.equals("", albumArt)) {
-            albumButton.setImageBitmap(BitmapFactory.decodeFile(albumArt));
+        if (null != this.albumArt && !Objects.equals("", this.albumArt)) {
+//            Bitmap art = BitmapFactory.decodeFile(albumArt);
+//            albumButton.setImageBitmap(art);
+            Log.d(TAG, "Album art is " + this.albumArt);
+            try {
+                Picasso.get().load(new File(this.albumArt)).fit().into((ImageView)view.findViewById(R.id.album_art_mini));
+            } catch (Exception e){
+                Log.d(TAG, "onCreateView: Picasso failed to load image", e);
+            }
         }
 
         // Play / Pause button
@@ -105,6 +119,7 @@ public class MiniPlayerFragment extends Fragment implements View.OnClickListener
         return view;
     }
 
+
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onActivityCreated");
@@ -115,13 +130,12 @@ public class MiniPlayerFragment extends Fragment implements View.OnClickListener
     public void onClick(View view) {
         Log.d(TAG, "onClick");
         switch (view.getId()) {
-            case R.id.btn_expand_player:
-                Intent i = new Intent(this.getActivity(), BigPlayerActivity.class);
-                startActivity(i);
-                break;
             case R.id.btn_play_pause_mini:
                 mMiniPlayerPlayPauseClickCallback.clickMiniPlayerPlayPause(isPlaying);
                 break;
+            case R.id.artist_name_mini:
+                Intent i = new Intent(this.getActivity(), BigPlayerActivity.class);
+                startActivity(i);
         }
     }
 

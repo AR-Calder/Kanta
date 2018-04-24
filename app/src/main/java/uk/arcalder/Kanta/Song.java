@@ -61,7 +61,17 @@ public class Song{
         return art;
     }
 
+    public String getArtist_id() {
+        return artist_id;
+    }
 
+    public String getAlbum_id() {
+        return album_id;
+    }
+
+    public String getGenre_id() {
+        return genre_id;
+    }
 
     // ------------------------------Setters--------------------------------
     public void setTitle(String title) {
@@ -94,5 +104,17 @@ public class Song{
 
     public void setArt(String art) {
         this.art = art;
+    }
+
+    public void setArtist_id(String artist_id) {
+        this.artist_id = artist_id;
+    }
+
+    public void setAlbum_id(String album_id) {
+        this.album_id = album_id;
+    }
+
+    public void setGenre_id(String genre_id) {
+        this.genre_id = genre_id;
     }
 }

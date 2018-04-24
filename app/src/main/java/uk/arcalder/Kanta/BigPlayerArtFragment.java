@@ -10,6 +10,8 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+
 /**
  * Created by Zynch on 23/04/2018.
  */
@@ -21,7 +23,8 @@ public class BigPlayerArtFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_big_player_album, container, false);
         ImageView imageView = (ImageView)rootView.findViewById(R.id.imageViewBigAlbumArt);
         try {
-            Picasso.get().load(MusicLibrary.getInstance().getCurrentSong().getArt()).fit().centerCrop().into(imageView);
+            File image = new File(MusicLibrary.getInstance().getCurrentSong().getArt());
+            Picasso.get().load(image).fit().centerCrop().into(imageView);
         } catch (Exception e){
             Picasso.get().load(android.R.drawable.ic_dialog_alert).fit().centerCrop().into(imageView);
         }

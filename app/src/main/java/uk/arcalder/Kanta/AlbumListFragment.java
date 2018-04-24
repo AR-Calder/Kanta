@@ -51,8 +51,11 @@ public class AlbumListFragment extends Fragment {
     private static ArrayList<Album> albumList = new ArrayList<>();
 
     // Fragment data trackers
-    private String bundleArgsArtistName = "ARTIST_NAME";   // Field we look for in bundle
-    private String bundleArtistName = "";                 // The actual value in said field
+
+    private String bundleParentType = "PARENT_TYPE";    // Field we look for in bundle,
+    private String parentType = "";                     // The value should be used in switch statement
+    private String bundleArtistName = "ARTIST_NAME";    // Field we look for in bundle
+    private String ArtistName = "";                     // The actual value in said field
     private String titlebarTitle    = "ALBUMS";
 
     public AlbumListFragment(){
@@ -91,15 +94,26 @@ public class AlbumListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
 
+        albumList = new ArrayList<>();
+
         // Check what type of load to do
         Bundle args = getArguments();
-        bundleArtistName = args.getString(bundleArgsArtistName);
 
-        if (null == bundleArtistName || bundleArtistName.equals("")){
-            getAllAlbums();
+        try {
+            parentType = args.getString(bundleParentType);
+            ArtistName = args.getString(bundleArtistName);
+        } catch (Exception e) {
+            Log.w(TAG, "onCreate: missing bundle args: ");
+        }
+
+        // get songs by album id or get all songs
+        if ((null != parentType && !parentType.equals("") && null != ArtistName && !ArtistName.equals(""))){
+            Log.d(TAG, "onCreate: getAlbumsFrom "+parentType+" ByArtistName ("+ArtistName+")");
+            titlebarTitle = ArtistName;
+            getAlbumsByArtistName(ArtistName);
         } else {
-            getAlbumsByArtistName(bundleArtistName);
-            titlebarTitle = bundleArtistName;
+            Log.d(TAG, "onCreate: getAllAlbums");
+            getAllAlbums();
         }
 
         mAdapter = new AlbumListAdapter(albumList);
