@@ -30,8 +30,16 @@ public class TitlebarFragment extends Fragment implements View.OnClickListener {
         ImageButton settingsButton = (ImageButton) view.findViewById(R.id.btn_settings);
         settingsButton.setOnClickListener(this);
 
-        String title_string = getArguments().getString("TITLE");
-        if (title_string == null) {
+        String title_string = null;
+        String home_String = null;
+
+        Bundle args = getArguments();
+        try {
+            title_string = args.getString("TITLE");
+        } catch (Exception e){
+
+        }
+        if (null == title_string || "".equals(title_string)) {
             title_string = "HOME";
         }
 

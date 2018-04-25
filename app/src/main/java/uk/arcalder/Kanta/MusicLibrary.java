@@ -66,7 +66,8 @@ public class MusicLibrary {
 
     // get current song
     public Song getCurrentSong() {
-        return playSet.get(current_position);
+        Log.d(TAG, "getCurrentSong from position "+current_position);
+        return (!playSet.isEmpty()) ? playSet.get(current_position) : null;
     }
 
     // set current song
@@ -140,6 +141,11 @@ public class MusicLibrary {
         if (null != song){
             songQueue.add(song);
         }
+    }
+
+    // remove a song from the queue
+    public void removeSongFromQueue(int position){
+        songQueue.remove(position);
     }
 
     // clear queue

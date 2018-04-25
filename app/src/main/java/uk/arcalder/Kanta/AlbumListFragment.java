@@ -37,8 +37,7 @@ public class AlbumListFragment extends Fragment {
 
     // Interface for onInteraction callback
     public interface onAlbumListFragmentInteractionListener {
-        void createTitlebarFragmentFromAlbumName(String name);
-        void createAlbumViewFragmentFromAlbumID(String album_id);
+        void createAlbumViewFragmentFromAlbumID(String album_id, String name);
     }
 
     // view, adapter & manager
@@ -126,8 +125,8 @@ public class AlbumListFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_list_song, container, false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.fragment_list_album, container, false);
         rootView.setTag(TAG);
 
         Log.d(TAG, "onCreateView");
@@ -163,8 +162,7 @@ public class AlbumListFragment extends Fragment {
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
                 Album album = albumList.get(position);
-                mAlbumListFragmentCallback.createAlbumViewFragmentFromAlbumID(album.getId());
-                mAlbumListFragmentCallback.createTitlebarFragmentFromAlbumName(album.getName());
+                mAlbumListFragmentCallback.createAlbumViewFragmentFromAlbumID(album.getId(), album.getName());
             }
 
         }));
@@ -188,15 +186,14 @@ public class AlbumListFragment extends Fragment {
         super.onDetach();
         // Remove listener when activity is detached
         mAlbumListFragmentCallback = null;
-        if (!asyncAlbumQuery.isCancelled()){
-            asyncAlbumQuery.cancel(true);
-        }
+//        if (!asyncAlbumQuery.isCancelled()){
+//            asyncAlbumQuery.cancel(true);
+//        }
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mAlbumListFragmentCallback.createTitlebarFragmentFromAlbumName(titlebarTitle);
     }
 
     // -----------------------------ALL ALBUM QUERY STUFFS---------------------------------
@@ -241,7 +238,7 @@ public class AlbumListFragment extends Fragment {
     public void getAlbumsByArtistName(String name) {
 
         // Only accept albums that match artist key
-        String albumSELECTION = MediaStore.Audio.Albums.ARTIST + "=" + name;
+        String albumSELECTION = MediaStore.Audio.Albums.ARTIST + "='" + name+"'";
 
         // Only interested in 1 result
         QueryHelper(albumSELECTION);

@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -39,6 +40,8 @@ public class SongListFragment extends Fragment {
         void playSongFromPlaysetIndex(int position);
         void playSong();
     }
+
+    private boolean swipeToRemove = false;
 
     // view, adapter & manager
     private RecyclerView mRecyclerView;
@@ -109,13 +112,18 @@ public class SongListFragment extends Fragment {
         }
 
         // get songs by album id or get all songs
-        if (parentType.equals("QUEUE")){
+        if ("QUEUE".equals(parentType)){
             Log.d(TAG, "onCreate: getSongsFrom Queue");
+            swipeToRemove = true;
             getSongsFromQueue();
 
-        } else if ((null != parentType && !parentType.equals("") && null != AlbumId && !AlbumId.equals(""))) {
+        } else  if ("PLAYSET".equals(parentType)){
+            Log.d(TAG, "onCreate: getSongsFrom PLAYSET");
+            getSongsFromPlayset();
+
+        }else if ((null != parentType && !"".equals(parentType) && null != AlbumId && !"".equals(AlbumId))) {
             Log.d(TAG, "onCreate: getSongsFrom " + parentType + " ByAlbumId (" + AlbumId + ")");
-            getSongsByAlbumId(bundleArgsAlbumId);
+            getSongsByAlbumId(AlbumId);
 
         } else{
             Log.d(TAG, "onCreate: getAllSongs");
@@ -166,19 +174,36 @@ public class SongListFragment extends Fragment {
 
             @Override
             public void onLeftSwipe(View view, int position) {
-                Log.d(TAG, "onLeftSwipe");
+                Log.d(TAG, "onLeftSwipe"); // Swipe to remove from queue
+                if (swipeToRemove){
+                    Log.d(TAG, "onLeftSwipe: remove song from queue");
+                    mMusicLibrary.removeSongFromQueue(position);
+                    Toast.makeText(getActivity(), "Removed " + songList.get(position).getTitle() + " from queue", Toast.LENGTH_SHORT).show();
+                    mAdapter.notifyDataSetChanged();
+                }
             }
 
             @Override
             public void onRightSwipe(View view, int position) {
-                Log.d(TAG, "onRightSwipe");
+                Log.d(TAG, "onRightSwipe"); // Swipe to add to queue
+                if (!swipeToRemove){
+                    Log.d(TAG, "onRightSwipe: add song to queue");
+                    mMusicLibrary.addSongToQueue(songList.get(position));
+                    Toast.makeText(getActivity(), "Added " + songList.get(position).getTitle() + " to queue", Toast.LENGTH_SHORT).show();
+                    mAdapter.notifyDataSetChanged();
+                }
             }
 
             @Override
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
-                mMusicLibrary.setCurrent_position(position);
-                mMusicLibrary.setSongs(songList);
+                if (!swipeToRemove) {
+                    mMusicLibrary.setCurrent_position(position);
+                    mMusicLibrary.setSongs(songList);
+                } else {
+                    // Can't set playset to queue else bad things happen
+                    mMusicLibrary.setCurrentSong(songList.get(position));
+                }
                 mSongListFragmentCallback.playSong();
             }
         }));
@@ -265,6 +290,11 @@ public class SongListFragment extends Fragment {
    public void getSongsFromQueue(){
         songList = MusicLibrary.getInstance().getSongQueue();
         mAdapter.notifyDataSetChanged();
+   }
+
+   public void getSongsFromPlayset(){
+       songList = MusicLibrary.getInstance().getSongs();
+       mAdapter.notifyDataSetChanged();
    }
 
     // TODO GET SONGS BY DECADE

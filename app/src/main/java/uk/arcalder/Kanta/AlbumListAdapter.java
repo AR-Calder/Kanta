@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -71,23 +72,32 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.View
             return;
         }
 
+        // Set Title
+        Log.d(TAG , "Album Name: "+ album.getName());
+        holder.albumListTitleView.setText(album.getName());
+        // Set Artist/Album
+        holder.albumListArtistView.setText(String.format("%s", album.getArtist()));
+
         // Set art
-        if (album.getAlbumArt() != null){
+        if (album.getAlbumArt() != null && !"".equals(album.getAlbumArt())){
             // Picasso doesn't need context, glide does
             // Glide is apparently better, but I can't be bothered adapting
             // all the code just for one lib
             // As per http://square.github.io/picasso/
             try {
-                Picasso.get().load(album.getAlbumArt()).fit().centerCrop().into(holder.albumListArtView);
+                Picasso.get().load(new File(album.getAlbumArt())).fit().centerCrop().into(holder.albumListArtView);
             } catch (IllegalArgumentException iae){
                 Log.d(TAG, "Picasso tried to load albums.getArt = " +album.getAlbumArt());
             }
+        } else {
+            try {
+                Picasso.get().load(R.drawable.default_artist).fit().centerCrop().into(holder.albumListArtView);
+            } catch (IllegalArgumentException iae){
+                Log.d(TAG, "Picasso tried and failed to load album art");
+            }
         }
 
-        // Set Title
-        holder.albumListTitleView.setText(album.getName());
-        // Set Artist/Album
-        holder.albumListArtistView.setText(String.format("%s", album.getArtist()));
+
 
     }
 

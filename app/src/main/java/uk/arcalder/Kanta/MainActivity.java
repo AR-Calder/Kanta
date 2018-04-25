@@ -28,9 +28,13 @@ public class MainActivity extends AppCompatActivity
         implements BottomNavigationView.OnNavigationItemSelectedListener,
             View.OnClickListener,
             SongListFragment.onSongListFragmentInteractionListener,
+            ArtistListFragment.onArtistListFragmentInteractionListener,
+            AlbumListFragment.onAlbumListFragmentInteractionListener,
             MiniPlayerFragment.onMiniPlayerPlayPauseClickListener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
+
+    private boolean PERMISSIONS_OK = false;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -41,6 +45,9 @@ public class MainActivity extends AppCompatActivity
 
     // Music Library - tracks songs, artist, albums
     MusicLibrary mMusicLibrary;
+
+    // Tracks playback state
+    private static int currentPlaybackState;
 
     // Store MusicLibrary during rotation/backgrounded events
     private VolatileStorageFragment storageFragment;
@@ -86,8 +93,6 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "onConnectionFailed");
         }
     };
-
-    private static int currentPlaybackState;
 
     // Controller callback
     private MediaControllerCompat.Callback mMediaControllerCompatCallback = new MediaControllerCompat.Callback() {
@@ -137,8 +142,6 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate Called");
@@ -146,13 +149,11 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-
-        // --------------------------Load Existing Library if exists--------------------------
+        // --------------------------Load Existing Library if exists--------------------------------
         android.support.v4.app.FragmentManager fm = getSupportFragmentManager();
         storageFragment = (VolatileStorageFragment) fm.findFragmentByTag(STORAGE_TAG);
 
-        if (storageFragment == null){
+        if (storageFragment == null) {
             Log.d(TAG, "onCreate: new storageFragment");
 
             //add the fragment
@@ -166,21 +167,32 @@ public class MainActivity extends AppCompatActivity
 
         mMusicLibrary = storageFragment.getList();
 
-        // --------------------------Get Permissions if no permissions--------------------------
+        // --------------------------Get Permissions if no permissions------------------------------
 
         getPermission(Manifest.permission.WAKE_LOCK);
         getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
 
-        //mMusicLibrary.initLibrary(getApplicationContext());
 
-        // --------------------------Load Fragments---------------------------------------------
+        // --------------------------Perform first time setup (if first time)-----------------------
+
+        // DO NOT RELOAD THE FRAGMENTS IF THEY ALREADY EXIST (HOURS WASTED HERE)
 
         // Load default fragments
-        loadToolbarFragment(new TitlebarFragment(), "HOME");
-        loadSongListFragment(new SongListFragment(), "ALBUM");
+        loadSongListFragment(new SongListFragment(), "ALL SONGS");
 
+        FragmentManager fragMan = getSupportFragmentManager();
+        FragmentTransaction fragTrans = fragMan.beginTransaction();
+        Bundle fragArgs = new Bundle();
 
-        // --------------------------Connect to Music Player Service--------------------------
+        TitlebarFragment titlebarFragment = new TitlebarFragment();
+        fragArgs.putString("TITLE", "HOME");
+
+        titlebarFragment.setArguments(fragArgs);
+        fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment);
+        fragTrans.addToBackStack(null);
+        fragTrans.commit();
+
+        // --------------------------Connect to Music Player Service--------------------------------
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MusicPlayerService.class),
                 mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
 
@@ -192,7 +204,7 @@ public class MainActivity extends AppCompatActivity
         navigation.setOnNavigationItemSelectedListener(this);
     }
 
-
+    // --------------------------Handle Permissions "Elegantly"-------------------------------------
 
     public void getPermission(String Permission){
 
@@ -215,38 +227,6 @@ public class MainActivity extends AppCompatActivity
             // Permission has already been granted
             MusicLibrary.getInstance().setHasPermission(true, getApplicationContext());
         }
-    }
-
-    // -----------------------------------Life Cycle---------------------------------------------------
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart Called");
-
-        mMediaBrowserCompat.connect();
-
-
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "onResume Called");
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        miniPlayerFragment((currentPlaybackState == PlaybackStateCompat.STATE_PLAYING),
-                (currentPlaybackState != PlaybackStateCompat.STATE_NONE &&
-                        currentPlaybackState != PlaybackStateCompat.STATE_STOPPED));
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "onStop Called");
-        // (see "stay in sync with the MediaSession")
-        if (MediaControllerCompat.getMediaController(MainActivity.this) != null) {
-            MediaControllerCompat.getMediaController(MainActivity.this).unregisterCallback(mMediaControllerCompatCallback);
-        }
-        mMediaBrowserCompat.disconnect();
     }
 
     @Override
@@ -276,11 +256,45 @@ public class MainActivity extends AppCompatActivity
             // permissions this app might request.
         }
     }
+    // -----------------------------------Life Cycle------------------------------------------------
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart Called");
+
+        mMediaBrowserCompat.connect();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume Called");
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        miniPlayerFragment((currentPlaybackState == PlaybackStateCompat.STATE_PLAYING),
+                (currentPlaybackState != PlaybackStateCompat.STATE_NONE &&
+                        currentPlaybackState != PlaybackStateCompat.STATE_STOPPED));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop Called");
+        // (see "stay in sync with the MediaSession")
+        if (MediaControllerCompat.getMediaController(MainActivity.this) != null) {
+            MediaControllerCompat.getMediaController(MainActivity.this).unregisterCallback(mMediaControllerCompatCallback);
+        }
+        mMediaBrowserCompat.disconnect();
+    }
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        // TODO fragment stack stuff here
+        int levels = getSupportFragmentManager().getBackStackEntryCount();
+        if (levels > -1) {
+            super.onBackPressed();
+        } else{
+            this.moveTaskToBack(true);
+        }
 
     }
 
@@ -327,101 +341,150 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-    // Toolbar / search bar fragments
-    private boolean loadToolbarFragment(Fragment toolbar_frag, String TAG) {
-        Bundle bundle = new Bundle();
-        bundle.putString("TITLE", TAG);
-        toolbar_frag.setArguments(bundle);
-        // IF Fragment already exists
-        if (toolbar_frag != null && null == getSupportFragmentManager().findFragmentByTag(TAG)) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container_toolbar, toolbar_frag, TAG)
-                    .commit();
-            return true;
-        } else if (TAG.equals("SEARCH")) {
-            // Fragment exists
-            //TODO load searchEditText fragment, Set focus to search editText, open keyboard (and do the same onClick of same item)
-            Toast.makeText(getApplicationContext(), "load searchEditText fragment, Set focus to search editText, open keyboard", Toast.LENGTH_SHORT).show();
-        }
-        return false;
-    }
-
     // ------------------------------Main Navigation --------------------------------
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
-        Fragment title_fragment = null;
-        SongListFragment list_fragment = null;
+        // https://developer.android.com/reference/android/app/FragmentTransaction.html
+        //https://developer.android.com/reference/android/app/FragmentManager.BackStackEntry.html
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction();
+        Bundle fargs = new Bundle();
 
-        String TITLE_TAG = null;
-        String LIST_TAG = null;
 
-        boolean RESULT = false;
-
-        // TODO replace with actual functionality
-        // TODO come up with better way to switch toolbar type
         switch (item.getItemId()) {
             case R.id.navigation_home:
-                // Home
-                TITLE_TAG = "HOME";
-                list_fragment = new SongListFragment();
-                title_fragment = new TitlebarFragment();
+                ft = fm.beginTransaction();
+                // Create default song fragment (no args)
+                SongListFragment songListFragment = new SongListFragment();
+                songListFragment.setArguments(fargs);
+
+                // If set, and the name or ID of a back stack entry has been supplied,
+                // then all matching entries will be consumed until one that doesn't match is
+                // found or the bottom of the stack is reached.
+                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+                // Replace (or create) a fragment where in a container.
+                ft.replace(R.id.fragment_container_main, songListFragment);
+                // Setup title bar
+                Bundle tfargs = new Bundle();
+
+                TitlebarFragment titlebarFragment = new TitlebarFragment();
+                tfargs.putString("TITLE", "HOME");
+
+                titlebarFragment.setArguments(tfargs);
+                ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
+                ft.addToBackStack(null);
+                ft.commit();
                 break;
-            case R.id.navigation_dashboard:
-                // Browse
-                TITLE_TAG = "BROWSE";
-                list_fragment = new SongListFragment();
-                title_fragment = new TitlebarFragment();
-                try {
-                    // TODO put this somewhere else.
-                    Song thisSong = mMusicLibrary.getSongs().get(2);
-                    Log.d(TAG, String.valueOf(thisSong.getTitle()));
-                    Log.d(TAG, String.valueOf(thisSong.getId()));
-                    mMusicLibrary.setCurrentSong(thisSong);
-                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
-                } catch (Exception e){
-                    Log.wtf(TAG, e);
-                }
+
+            case R.id.navigation_artists: // navigation_artists
+                ft = fm.beginTransaction();
+                // Create default artist fragment (no args)
+                ArtistListFragment artistListFragment = new ArtistListFragment();
+                artistListFragment.setArguments(fargs);
+
+                // If set, and the name or ID of a back stack entry has been supplied,
+                // then all matching entries will be consumed until one that doesn't match is
+                // found or the bottom of the stack is reached.
+                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+                // Replace (or create) a fragment where in a container.
+                ft.replace(R.id.fragment_container_main, artistListFragment);
+                // Setup title bar
+                Bundle t1fargs = new Bundle();
+
+                TitlebarFragment titlebar1Fragment = new TitlebarFragment();
+                t1fargs.putString("TITLE", "ARTISTS");
+
+                titlebar1Fragment.setArguments(t1fargs);
+                ft.replace(R.id.fragment_container_toolbar, titlebar1Fragment);
+                ft.addToBackStack(null);
+                ft.commit();
                 break;
+
             case R.id.navigation_search:
                 // Search
-                TITLE_TAG = "SEARCH";
-                list_fragment = new SongListFragment();
-                title_fragment = new SearchFragment();
-                try {
-                    // TODO put this somewhere else.
-                    Song thisSong = mMusicLibrary.getSongs().get(0);
-                    Log.d(TAG, String.valueOf(thisSong.getTitle()));
-                    Log.d(TAG, String.valueOf(thisSong.getId()));
-                    mMusicLibrary.setCurrentSong(thisSong);
-                    MediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId(thisSong.getData(), null);
-                } catch (Exception e){
-                    Log.wtf(TAG, e);
-                }
-                break;
-            case R.id.navigation_notifications:
-                // QUEUE
-                TITLE_TAG = "QUEUE";
-                list_fragment = new SongListFragment();
-                title_fragment = new TitlebarFragment();
-                break;
-            case R.id.navigation_library:
-                // LIBRARY
-                TITLE_TAG = "LIBRARY";
-                list_fragment = new SongListFragment();
-                title_fragment = new TitlebarFragment();
-                break;
-        }
-        if (null != title_fragment) {
-            RESULT = loadToolbarFragment(title_fragment, TITLE_TAG);
-        }
-        if (null != list_fragment) {
-            RESULT = loadSongListFragment(list_fragment, "ALBUM");
-        }
+                ft = fm.beginTransaction();
+                // Create default song fragment (no args)
+                SongListFragment PlaySetSongListFragment = new SongListFragment();
+                fargs.putString("PARENT_TYPE", "PLAYSET");
+                PlaySetSongListFragment.setArguments(fargs);
 
-        return RESULT;
+                // If set, and the name or ID of a back stack entry has been supplied,
+                // then all matching entries will be consumed until one that doesn't match is
+                // found or the bottom of the stack is reached.
+                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+                // Replace (or create) a fragment where in a container.
+                ft.replace(R.id.fragment_container_main, PlaySetSongListFragment);
+                // Setup title bar
+                Bundle t33fargs = new Bundle();
+
+                TitlebarFragment titlebar33Fragment = new TitlebarFragment();
+                t33fargs.putString("TITLE", "PLAYSET");
+
+                titlebar33Fragment.setArguments(t33fargs);
+                ft.replace(R.id.fragment_container_toolbar, titlebar33Fragment);
+                ft.addToBackStack(null);
+                ft.commit();
+                break;
+
+            case R.id.navigation_albums:
+                ft = fm.beginTransaction();
+                // Create default artist fragment (no args)
+                AlbumListFragment albumListFragment = new AlbumListFragment();
+                albumListFragment.setArguments(fargs);
+
+                // If set, and the name or ID of a back stack entry has been supplied,
+                // then all matching entries will be consumed until one that doesn't match is
+                // found or the bottom of the stack is reached.
+                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+                // Replace (or create) a fragment where in a container.
+                ft.replace(R.id.fragment_container_main, albumListFragment);
+                // Setup title bar
+                Bundle t2fargs = new Bundle();
+
+                TitlebarFragment titlebar2Fragment = new TitlebarFragment();
+                t2fargs.putString("TITLE", "ALBUMS");
+
+                titlebar2Fragment.setArguments(t2fargs);
+                ft.replace(R.id.fragment_container_toolbar, titlebar2Fragment);
+                ft.addToBackStack(null);
+                ft.commit();
+                break;
+
+            case R.id.navigation_queue:
+                ft = fm.beginTransaction();
+                // Create default song fragment (no args)
+                SongListFragment queueSongListFragment = new SongListFragment();
+                fargs.putString("PARENT_TYPE", "QUEUE");
+                queueSongListFragment.setArguments(fargs);
+
+                // If set, and the name or ID of a back stack entry has been supplied,
+                // then all matching entries will be consumed until one that doesn't match is
+                // found or the bottom of the stack is reached.
+                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+                // Replace (or create) a fragment where in a container.
+                ft.replace(R.id.fragment_container_main, queueSongListFragment);
+                // Setup title bar
+                Bundle t3fargs = new Bundle();
+
+                TitlebarFragment titlebar3Fragment = new TitlebarFragment();
+                t3fargs.putString("TITLE", "QUEUE");
+
+                titlebar3Fragment.setArguments(t3fargs);
+                ft.replace(R.id.fragment_container_toolbar, titlebar3Fragment);
+                ft.addToBackStack(null);
+                ft.commit();
+                break;
+        }
+        return true;
     }
+
+    // --------------------------------------Fragment callbacks---------------------------------------------------------
 
     @Override
     public void onClick(View view) {
@@ -459,4 +522,56 @@ public class MainActivity extends AppCompatActivity
             mMediaControllerCompat.getTransportControls().play();
         }
     }
+
+    @Override
+    public void createAlbumViewFragmentFromAlbumID(String album_id, String album_name) {
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction();
+        Bundle fargs = new Bundle();
+
+        SongListFragment songListFragment = new SongListFragment();
+        fargs.putString("PARENT_TYPE", album_name);
+        fargs.putString("ALBUM_ID", album_id);
+
+        songListFragment.setArguments(fargs);
+        ft.replace(R.id.fragment_container_main, songListFragment);
+
+        // Setup title bar
+        Bundle tfargs = new Bundle();
+
+        TitlebarFragment titlebarFragment = new TitlebarFragment();
+        tfargs.putString("TITLE", album_name);
+
+        titlebarFragment.setArguments(tfargs);
+        ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
+        ft.addToBackStack(null);
+        ft.commit();
+
+    }
+
+    @Override
+    public void createAlbumListFragmentFromArtistName(String artist_name) {
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction();
+        Bundle fargs = new Bundle();
+
+        AlbumListFragment albumListFragment = new AlbumListFragment();
+        fargs.putString("PARENT_TYPE", artist_name);
+        fargs.putString("ARTIST_NAME", artist_name);
+
+        albumListFragment.setArguments(fargs);
+        ft.replace(R.id.fragment_container_main, albumListFragment);
+
+        // Setup title bar
+        Bundle tfargs = new Bundle();
+
+        TitlebarFragment titlebarFragment = new TitlebarFragment();
+        tfargs.putString("TITLE", artist_name);
+
+        titlebarFragment.setArguments(tfargs);
+        ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
+        ft.addToBackStack(null);
+        ft.commit();
+    }
+
 }

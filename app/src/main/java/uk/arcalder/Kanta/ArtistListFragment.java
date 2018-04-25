@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -37,7 +38,6 @@ public class ArtistListFragment extends Fragment {
     // Interface for onInteraction callback
     public interface onArtistListFragmentInteractionListener {
         void createAlbumListFragmentFromArtistName(String artistName);
-        void createTitlebarFragmentFromArtistName(String artistName);
     }
 
     // view, adapter & manager
@@ -144,7 +144,7 @@ public class ArtistListFragment extends Fragment {
         mRecyclerView.setHasFixedSize(true);
 
         // use a linear layout manager
-        mLayoutManager = new LinearLayoutManager(getActivity());
+        mLayoutManager = new GridLayoutManager(getActivity(), 2);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         Log.d(TAG, "onCreateView: setAdapter to playSet");
@@ -168,7 +168,6 @@ public class ArtistListFragment extends Fragment {
                 Log.d(TAG, "onClick");
                 String artistName = artistList.get(position).getName();
                 mArtistListFragmentCallback.createAlbumListFragmentFromArtistName(artistName);
-                mArtistListFragmentCallback.createTitlebarFragmentFromArtistName(artistName);
             }
         }));
 
@@ -254,7 +253,7 @@ public class ArtistListFragment extends Fragment {
                         try (Cursor artCursor = mContentResolver.query(
                                 MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
                                 new String[]{MediaStore.Audio.Albums.ARTIST, MediaStore.Audio.Albums.ALBUM_ART},
-                                MediaStore.Audio.Albums.ARTIST + "="+artist.getName(), // This is pretty shitty but there is no id field here :/
+                                MediaStore.Audio.Albums.ARTIST + "='"+artist.getName()+"'", // This is pretty shitty but there is no id field here :/
                                 null,
                                 MediaStore.Audio.Albums.DEFAULT_SORT_ORDER)){
                             artCursor.moveToFirst();
@@ -264,6 +263,8 @@ public class ArtistListFragment extends Fragment {
                         }
                         // Update List as we go
                         publishProgress(artist);
+                        // TODO REMOVE!!!
+                        Log.d(TAG, "AsyncArtistQuery art: " + artist.getArt());
                     }
                     Log.d(TAG, "AsyncSongQuery: loaded = true");
                     artistCursor.close();

@@ -16,7 +16,7 @@ public class Album {
     private String albumArt = "";
 
     // CONSTRUCTOR
-    public Album(String album_id, String album, String artist,  String album_art) {
+    public Album(String album_id, String name, String artist,  String album_art) {
         this.id = album_id;    // ID associated with album
         this.name = name;       // Name of album
         this.artist = artist;
