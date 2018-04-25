@@ -136,7 +136,10 @@
     <string name="song_title">song title</string>
     <string name="artist_album">artist name/album</string>
     <string name="todo">TODO</string>
-
+    <string name="artists">Artists</string>
+    <string name="play_set">Play Set</string>
+    <string name="queue">Queue</string>
+    <string name="albums">Albums</string>
 
 
 </resources>

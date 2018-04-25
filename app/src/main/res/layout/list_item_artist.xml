@@ -10,8 +10,8 @@
     <ImageView
         android:id="@+id/artist_item_art"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:src="@color/colorAccent"
+        android:layout_height="160dp"
+        android:src="@color/AmoledBlack"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent" />
