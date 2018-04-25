@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioAttributes;
@@ -134,16 +135,12 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onPlay() {
-
-            if( !mMediaPlayer.isPlaying() ) {
-                mMediaPlayer.start();
-                //Doesn't update itself
-                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-            }
+            Log.d(TAG, "onPlay");
 
             // Try to get focus
             if(!getAudioFocus()){
-                Log.d(TAG, "onPlayFromMediaId: Couldn't get audio focus");
+                Log.d(TAG, "onPlay: Couldn't get audio focus");
+                return;
             }
 
             //Should be started but sometimes not :s
@@ -152,37 +149,23 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 startService(new Intent(getApplicationContext(), MusicPlayerService.class));
             }
 
+            if(mPlaybackState.getState() == PlaybackStateCompat.STATE_PAUSED) {  // If we are resuming something not trying to play an un-started song
+                Log.d(TAG, "onPlay: Starting Player");
+
+                //Doesn't update itself
+                mMediaSession.setActive(true);
+                mMediaPlayer.start();
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+                initNoisyReceiver();
+
+                currentNotification = buildNotification();
+                mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
+            }
+
+
+
             super.onPlay();
             // TODO NOTE: onPlay is really onResume/onNowPlaying, don't try to play songs here
-//            //Might have been playing something else
-//            mMediaPlayer.reset();
-//            initMediaPlayer();
-//
-//            // Try to get focus
-//            if(!getAudioFocus()){
-//                Log.d(TAG, "onPlay: Couldn't get audio focus");
-//            }
-//
-//            //Should be started but sometimes not :s
-//            if(!isServiceStarted){
-//                Log.d(TAG, "onPlay: Starting Service");
-//                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
-//            }
-//
-//            try {
-//                FileInputStream inputStream = new FileInputStream(new File(mMusicLibrary.getCurrentSong().getData()));
-//                Log.d(TAG, "onPlay: setDataSource");
-//                Log.d(TAG, "onPlay: getFD = " + inputStream.getFD());
-//                mMediaPlayer.setDataSource(inputStream.getFD());
-//                mMediaPlayer.prepareAsync();
-//                inputStream.close();
-//
-//            } catch( IOException e ) {
-//                Log.e(TAG, "Could not play media from data:", e);
-//                stopSelf();
-//            }
-//                //afd.close();
-//                initMediaSessionMetadata();
         }
 
         @Override
@@ -256,6 +239,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         @Override
         public void onStop() {
             releaseAudioFocus();
+            setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
             stopSelf();
             mMediaSession.setActive(false);
             mMediaPlayer.stop();
@@ -269,20 +253,31 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onSkipToNext() {
-            Song nextSong = mMusicLibrary.getNextSongFromAny(); // TODO GET NEXT SONG
+            Song nextSong = mMusicLibrary.getNextSong(); // TODO GET NEXT SONG
             if (null != nextSong) {
-                Log.d(TAG, "onSkipToNext: nextSong was null");
+                Log.d(TAG, "onSkipToNext: nextSong is '" + nextSong.getTitle() + "'");
                 mMusicLibrary.setCurrentSong(nextSong);
             } else {
                 Log.d(TAG, "onSkipToNext: nextSong was null");
             }
-            // TODO REMOVE - JUST FOR TESTING
-            onPlay();
+
+            // get current song provides the song at the current position so this works for both
+            onPlayFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
             super.onSkipToNext();
         }
 
         @Override
         public void onSkipToPrevious() {
+            Song prevSong = mMusicLibrary.getPreviousSong(); // TODO GET PREV SONG
+            if (null != prevSong) {
+                Log.d(TAG, "onSkipToPrevious: prevSong is '" + prevSong.getTitle() + "'");
+                mMusicLibrary.setCurrentSong(prevSong);
+                onPlayFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
+            } else {
+                Log.d(TAG, "onSkipToPrevious: prevSong was null");
+                onStop();
+            }
+
             super.onSkipToPrevious();
         }
 
@@ -475,9 +470,11 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private void setMediaPlaybackState(int state) {
         PlaybackStateCompat.Builder playbackStateBuilder = new PlaybackStateCompat.Builder();
         if( state == PlaybackState.STATE_PLAYING ) {
-            playbackStateBuilder.setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PAUSE);
+            playbackStateBuilder.setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_SKIP_TO_NEXT |
+                    PlaybackState.ACTION_SKIP_TO_PREVIOUS);
         } else {
-            playbackStateBuilder.setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PLAY);
+            playbackStateBuilder.setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PLAY | PlaybackState.ACTION_SKIP_TO_NEXT |
+                    PlaybackState.ACTION_SKIP_TO_PREVIOUS);
         }
         playbackStateBuilder.setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 0);
         mMediaSession.setPlaybackState(playbackStateBuilder.build());
@@ -544,8 +541,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
                 if (mPlayOnFocusGain && !mMediaPlayer.isPlaying()){
                     // Media player isn't already playing and should be resumed
-                    mMediaPlayer.start();
-                    setMediaPlaybackState(PlaybackState.STATE_PLAYING);
+                    mMediaController.getTransportControls().play();
                 }
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
@@ -560,8 +556,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                 // Audio focus lost but will gain it back (soon-ish)
                 if (mMediaPlayer.isPlaying()){
-                    setMediaPlaybackState(PlaybackState.STATE_PAUSED);
-                    mMediaPlayer.pause();
+                    mMediaController.getTransportControls().pause();
                 }
                 // Update State
                 mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
@@ -569,8 +564,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             case AudioManager.AUDIOFOCUS_LOSS:
                 // Lost audio focus, possibly "permanently"
                 if (mMediaPlayer.isPlaying()){
-                    mMediaPlayer.stop();
-                    setMediaPlaybackState(PlaybackState.STATE_STOPPED);
+                    mMediaController.getTransportControls().stop();
                 }
                 // Update State
                 mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
@@ -636,8 +630,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         // Get Album Art
 
-        // (null != current_song) ? BitmapFactory.decodeFile(current_song.getArt()) :
-        //Bitmap albumArt = BitmapFactory.decodeResource(getResources(), R.drawable.ic_sync_black_24dp);;
+
+        Bitmap albumArt = (null != current_song.getArt() && !"".equals(current_song.getArt())) ? BitmapFactory.decodeFile(current_song.getArt()) : BitmapFactory.decodeResource(getResources(), R.drawable.ic_sync_black_24dp);;
 
         Log.d(TAG, "buildNotification: mPlaybackState.getActions is " + mPlaybackState);
 
@@ -667,7 +661,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 // Pending intent that is fired when user clicks on notification.
                 .setContentIntent(createContentIntent(current_song))
                 .setColor(ContextCompat.getColor(this, R.color.colorAccent))
-                //.setLargeIcon(albumArt)
+                .setLargeIcon(albumArt)
                 .setSmallIcon(android.R.drawable.ic_media_play)
                 // Title - Usually Song name.
                 .setContentTitle(current_song.getTitle())

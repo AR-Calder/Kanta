@@ -46,8 +46,7 @@ public class AlbumListFragment extends Fragment {
     private static AlbumListAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    // Album content access
-    private MusicProvider mMusicProvider;                   // Class that makes queries easier
+    // Class that makes queries easier
     private static ArrayList<Album> albumList = new ArrayList<>();
 
     // Fragment data trackers
@@ -106,7 +105,7 @@ public class AlbumListFragment extends Fragment {
             Log.w(TAG, "onCreate: missing bundle args: ");
         }
 
-        // get songs by album id or get all songs
+        // get albums by artist name or get all albums
         if ((null != parentType && !parentType.equals("") && null != ArtistName && !ArtistName.equals(""))){
             Log.d(TAG, "onCreate: getAlbumsFrom "+parentType+" ByArtistName ("+ArtistName+")");
             titlebarTitle = ArtistName;
@@ -179,6 +178,9 @@ public class AlbumListFragment extends Fragment {
         Log.d(TAG, "onDestroy");
         // Remove listener when activity is destroyed
         mAlbumListFragmentCallback = null;
+        if (!asyncAlbumQuery.isCancelled()){
+            asyncAlbumQuery.cancel(true);
+        }
     }
 
     @Override
@@ -186,6 +188,9 @@ public class AlbumListFragment extends Fragment {
         super.onDetach();
         // Remove listener when activity is detached
         mAlbumListFragmentCallback = null;
+        if (!asyncAlbumQuery.isCancelled()){
+            asyncAlbumQuery.cancel(true);
+        }
     }
 
     @Override
@@ -271,6 +276,11 @@ public class AlbumListFragment extends Fragment {
                 Cursor songCursor = cursors[0];
                 try {
                     for (songCursor.moveToFirst(); !songCursor.isAfterLast(); songCursor.moveToNext()) {
+                        if(isCancelled()){
+                            // Prevents tasks continuing after fragment destroy or detach
+                            Log.d(TAG, "AsyncAlbumQuery cancelled");
+                            break;
+                        }
                         String ID           = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums._ID));
                         String ALBUM        = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM));
                         String ARTIST       = songCursor.getString(songCursor.getColumnIndex(MediaStore.Audio.Albums.ARTIST));

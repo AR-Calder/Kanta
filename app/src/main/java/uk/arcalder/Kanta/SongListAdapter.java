@@ -1,17 +1,12 @@
 package uk.arcalder.Kanta;
 
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.squareup.picasso.Picasso;
-
-import java.io.File;
 import java.util.ArrayList;
 
 
@@ -58,7 +53,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
     public SongListAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         Log.d(TAG, "onCreateViewHolder");
-        View mView = LayoutInflater.from(parent.getContext()).inflate(R.layout.song_list_item, parent, false);
+        View mView = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_song, parent, false);
         return new ViewHolder(mView);
     }
 

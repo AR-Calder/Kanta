@@ -124,8 +124,8 @@ public class MainActivity extends AppCompatActivity
                     miniPlayerFragment(true, true);
                     break;
                 default:
-                    Log.d(TAG, "onPlaybackStateChanged to: *STATE_NOT_CARE_ABOUT");
-                    currentPlaybackState = PlaybackStateCompat.STATE_NONE;
+                    Log.d(TAG, "onPlaybackStateChanged to: *STATE_STOPPED");
+                    currentPlaybackState = PlaybackStateCompat.STATE_STOPPED;
                     miniPlayerFragment(false, false);
             }
         }
@@ -288,25 +288,13 @@ public class MainActivity extends AppCompatActivity
     //---------------------------Fragment Loaders--------------------------------------------
     private MiniPlayerFragment mMiniPlayerFragment;
 
-//    storageFragment = (VolatileStorageFragment) fm.findFragmentByTag(STORAGE_TAG);
-//
-//        if (storageFragment == null){
-//        Log.d(TAG, "onCreate: new storageFragment");
-//
-//        //add the fragment
-//        storageFragment = new VolatileStorageFragment();
-//        fm.beginTransaction().add(storageFragment, STORAGE_TAG).commit();
-//        // set data source
-//        storageFragment.saveList();
-//    } else {
-//        Log.d(TAG, "onCreate: get existing storageFragment");
-//    }
-//
     // Mini Player Fragments
     private void miniPlayerFragment(Boolean isPlaying, boolean show) {
+
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         if (show) {
-            MiniPlayerFragment mMiniPlayerFragment = new MiniPlayerFragment();
+            Log.d(TAG, "miniPlayerFragment: show");
+            mMiniPlayerFragment = new MiniPlayerFragment();
             Bundle bundle = new Bundle();
             bundle.putString("ALBUM_ART", mMusicLibrary.getCurrentSong().getArt());
             bundle.putString("SONG_TITLE", mMusicLibrary.getCurrentSong().getTitle());
@@ -315,6 +303,7 @@ public class MainActivity extends AppCompatActivity
             mMiniPlayerFragment.setArguments(bundle);
             ft.replace(R.id.fragment_container_player, mMiniPlayerFragment);
         } else if (mMiniPlayerFragment != null){
+            Log.d(TAG, "miniPlayerFragment: hide");
             ft.remove(mMiniPlayerFragment);
         }
         ft.commit();
@@ -322,9 +311,6 @@ public class MainActivity extends AppCompatActivity
 
     // List fragments
     private boolean loadSongListFragment(SongListFragment list_frag, String TAG) {
-        if (TAG.equals("HOME")){
-            mMusicLibrary.setViewSongs(mMusicLibrary.getSongs());
-        }
         // If Fragment doesn't exist
         if (list_frag != null && null == getSupportFragmentManager().findFragmentByTag(TAG)) {
 

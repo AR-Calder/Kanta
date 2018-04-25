@@ -46,7 +46,6 @@ public class SongListFragment extends Fragment {
     private RecyclerView.LayoutManager mLayoutManager;
 
     // Song content access
-    private MusicProvider mMusicProvider;
     private static ArrayList<Song> songList = new ArrayList<>();
     MusicLibrary mMusicLibrary;
 
@@ -110,10 +109,15 @@ public class SongListFragment extends Fragment {
         }
 
         // get songs by album id or get all songs
-        if ((null != parentType && !parentType.equals("") && null != AlbumId && !AlbumId.equals(""))){
-            Log.d(TAG, "onCreate: getSongsFrom "+parentType+" ByAlbumId ("+AlbumId+")");
+        if (parentType.equals("QUEUE")){
+            Log.d(TAG, "onCreate: getSongsFrom Queue");
+            getSongsFromQueue();
+
+        } else if ((null != parentType && !parentType.equals("") && null != AlbumId && !AlbumId.equals(""))) {
+            Log.d(TAG, "onCreate: getSongsFrom " + parentType + " ByAlbumId (" + AlbumId + ")");
             getSongsByAlbumId(bundleArgsAlbumId);
-        } else {
+
+        } else{
             Log.d(TAG, "onCreate: getAllSongs");
             getAllSongs();
         }
@@ -174,7 +178,7 @@ public class SongListFragment extends Fragment {
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
                 mMusicLibrary.setCurrent_position(position);
-                mMusicLibrary.setPlaySet(songList);
+                mMusicLibrary.setSongs(songList);
                 mSongListFragmentCallback.playSong();
             }
         }));
@@ -257,6 +261,11 @@ public class SongListFragment extends Fragment {
         // By setting end to -1 it will instead loop until all songs have been found
         QueryHelper(songSELECTION);
     }
+
+   public void getSongsFromQueue(){
+        songList = MusicLibrary.getInstance().getSongQueue();
+        mAdapter.notifyDataSetChanged();
+   }
 
     // TODO GET SONGS BY DECADE
     public void getSongsByDecade(int year) {

@@ -14,6 +14,7 @@ public class Artist {
     private String name = "";
     private String numOfTracks = "";
     private String numOfAlbums = "";
+    private String art = "";
 
     // CONSTRUCTOR
     public Artist(String id1, String name1, String numOfTracks1, String numOfAlbums1) {
@@ -53,5 +54,13 @@ public class Artist {
 
     public void setNumOfAlbums(String numOfAlbums) {
         this.numOfAlbums = numOfAlbums;
+    }
+
+    public String getArt() {
+        return art;
+    }
+
+    public void setArt(String art) {
+        this.art = art;
     }
 }
