@@ -167,29 +167,27 @@ public class MainActivity extends AppCompatActivity
 
         mMusicLibrary = storageFragment.getList();
 
-        // --------------------------Get Permissions if no permissions------------------------------
-
-        getPermission(Manifest.permission.WAKE_LOCK);
-        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
 
 
         // --------------------------Perform first time setup (if first time)-----------------------
 
-        // DO NOT RELOAD THE FRAGMENTS IF THEY ALREADY EXIST (HOURS WASTED HERE)
-
-        // Load default fragments
-        loadSongListFragment(new SongListFragment(), "ALL SONGS");
+        // DO NOT ADD THESE FRAGMENTS TO BACKSTACK (HOURS WASTED HERE)
 
         FragmentManager fragMan = getSupportFragmentManager();
         FragmentTransaction fragTrans = fragMan.beginTransaction();
         Bundle fragArgs = new Bundle();
+
+        // --------------------------Get Permissions if no permissions------------------------------
+
+        getPermission(Manifest.permission.WAKE_LOCK);
+        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
 
         TitlebarFragment titlebarFragment = new TitlebarFragment();
         fragArgs.putString("TITLE", "HOME");
 
         titlebarFragment.setArguments(fragArgs);
         fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment);
-        fragTrans.addToBackStack(null);
+        fragTrans.replace(R.id.fragment_container_main, new SongListFragment());
         fragTrans.commit();
 
         // --------------------------Connect to Music Player Service--------------------------------
@@ -323,24 +321,6 @@ public class MainActivity extends AppCompatActivity
         ft.commit();
     }
 
-    // List fragments
-    private boolean loadSongListFragment(SongListFragment list_frag, String TAG) {
-        // If Fragment doesn't exist
-        if (list_frag != null && null == getSupportFragmentManager().findFragmentByTag(TAG)) {
-
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container_main, list_frag, TAG)
-                    .commit();
-            return true;
-        } else {
-            // Fragment exists
-            //Toast.makeText(getApplicationContext(), TAG, Toast.LENGTH_SHORT).show();
-        }
-        return false;
-
-    }
-
     // ------------------------------Main Navigation --------------------------------
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -349,8 +329,9 @@ public class MainActivity extends AppCompatActivity
         //https://developer.android.com/reference/android/app/FragmentManager.BackStackEntry.html
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction ft = fm.beginTransaction();
+        TitlebarFragment titlebarFragment = new TitlebarFragment();
         Bundle fargs = new Bundle();
-
+        Bundle targs = new Bundle();
 
         switch (item.getItemId()) {
             case R.id.navigation_home:
@@ -367,15 +348,7 @@ public class MainActivity extends AppCompatActivity
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, songListFragment);
                 // Setup title bar
-                Bundle tfargs = new Bundle();
-
-                TitlebarFragment titlebarFragment = new TitlebarFragment();
-                tfargs.putString("TITLE", "HOME");
-
-                titlebarFragment.setArguments(tfargs);
-                ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
-                ft.addToBackStack(null);
-                ft.commit();
+                targs.putString("TITLE", "HOME");
                 break;
 
             case R.id.navigation_artists: // navigation_artists
@@ -392,15 +365,7 @@ public class MainActivity extends AppCompatActivity
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, artistListFragment);
                 // Setup title bar
-                Bundle t1fargs = new Bundle();
-
-                TitlebarFragment titlebar1Fragment = new TitlebarFragment();
-                t1fargs.putString("TITLE", "ARTISTS");
-
-                titlebar1Fragment.setArguments(t1fargs);
-                ft.replace(R.id.fragment_container_toolbar, titlebar1Fragment);
-                ft.addToBackStack(null);
-                ft.commit();
+                targs.putString("TITLE", "ARTISTS");
                 break;
 
             case R.id.navigation_search:
@@ -419,15 +384,7 @@ public class MainActivity extends AppCompatActivity
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, PlaySetSongListFragment);
                 // Setup title bar
-                Bundle t33fargs = new Bundle();
-
-                TitlebarFragment titlebar33Fragment = new TitlebarFragment();
-                t33fargs.putString("TITLE", "PLAYSET");
-
-                titlebar33Fragment.setArguments(t33fargs);
-                ft.replace(R.id.fragment_container_toolbar, titlebar33Fragment);
-                ft.addToBackStack(null);
-                ft.commit();
+                targs.putString("TITLE", "PLAYSET");
                 break;
 
             case R.id.navigation_albums:
@@ -444,15 +401,7 @@ public class MainActivity extends AppCompatActivity
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, albumListFragment);
                 // Setup title bar
-                Bundle t2fargs = new Bundle();
-
-                TitlebarFragment titlebar2Fragment = new TitlebarFragment();
-                t2fargs.putString("TITLE", "ALBUMS");
-
-                titlebar2Fragment.setArguments(t2fargs);
-                ft.replace(R.id.fragment_container_toolbar, titlebar2Fragment);
-                ft.addToBackStack(null);
-                ft.commit();
+                targs.putString("TITLE", "ALBUMS");
                 break;
 
             case R.id.navigation_queue:
@@ -470,17 +419,15 @@ public class MainActivity extends AppCompatActivity
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, queueSongListFragment);
                 // Setup title bar
-                Bundle t3fargs = new Bundle();
-
-                TitlebarFragment titlebar3Fragment = new TitlebarFragment();
-                t3fargs.putString("TITLE", "QUEUE");
-
-                titlebar3Fragment.setArguments(t3fargs);
-                ft.replace(R.id.fragment_container_toolbar, titlebar3Fragment);
-                ft.addToBackStack(null);
-                ft.commit();
+                targs.putString("TITLE", "QUEUE");
                 break;
         }
+
+        // Since this is always updated do it here
+        titlebarFragment.setArguments(targs);
+        ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
+        ft.addToBackStack(null);
+        ft.commit();
         return true;
     }
 
