@@ -177,9 +177,9 @@ public class SongListFragment extends Fragment {
                 Log.d(TAG, "onLeftSwipe"); // Swipe to remove from queue
                 if (swipeToRemove){
                     Log.d(TAG, "onLeftSwipe: remove song from queue");
-                    mMusicLibrary.removeSongFromQueue(position);
                     Toast.makeText(getActivity(), "Removed " + songList.get(position).getTitle() + " from queue", Toast.LENGTH_SHORT).show();
-                    mAdapter.notifyDataSetChanged();
+                    mMusicLibrary.removeSongFromQueue(position);
+                    mAdapter.notifyItemRemoved(position);
                 }
             }
 
@@ -200,11 +200,12 @@ public class SongListFragment extends Fragment {
                 if (!swipeToRemove) {
                     mMusicLibrary.setCurrent_position(position);
                     mMusicLibrary.setSongs(songList);
+                    mSongListFragmentCallback.playSong();
                 } else {
                     // Can't set playset to queue else bad things happen
-                    mMusicLibrary.setCurrentSong(songList.get(position));
+//                    mMusicLibrary.setCurrentSong(songList.get(position));
+//                    mSongListFragmentCallback.
                 }
-                mSongListFragmentCallback.playSong();
             }
         }));
 

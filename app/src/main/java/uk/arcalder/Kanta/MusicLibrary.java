@@ -66,8 +66,9 @@ public class MusicLibrary {
 
     // get current song
     public Song getCurrentSong() {
-        Log.d(TAG, "getCurrentSong from position "+current_position);
-        return (!playSet.isEmpty()) ? playSet.get(current_position) : null;
+        Log.d(TAG, "getCurrentSong from position");
+        return currentSong;
+        //return (!playSet.isEmpty()) ? playSet.get(current_position) : null;
     }
 
     // set current song
@@ -103,11 +104,12 @@ public class MusicLibrary {
     }
 
     public Song getNextSong(){
+        Song rtn = null;
         if (!songQueue.isEmpty()){
             // There are actually songs to play in the Queue
 
             Log.d(TAG, "getNextSong: getting queue song");
-            return getNextQueueSong();
+            rtn = getNextQueueSong();
 
         } else if (!playSet.isEmpty()){
             // There are actually songs to play in the playSet
@@ -116,13 +118,16 @@ public class MusicLibrary {
 
                 // There are songs after this one
                 Log.d(TAG, "getNextSong: getting playSet song");
-                return playSet.get(++current_position);
+                rtn = playSet.get(++current_position);
             }
             Log.d(TAG, "getNextSong: NO MORE SONGS");
         }
 
+        // TODO TEST 25/04/18
+        setCurrentSong(rtn);
+
         // There is nothing to play
-        return null;
+        return rtn;
     }
 
     // get next queued song

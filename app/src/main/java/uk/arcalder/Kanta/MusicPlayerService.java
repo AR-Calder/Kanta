@@ -256,9 +256,9 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             Song nextSong = mMusicLibrary.getNextSong(); // TODO GET NEXT SONG
             if (null != nextSong) {
                 Log.d(TAG, "onSkipToNext: nextSong is '" + nextSong.getTitle() + "'");
-                mMusicLibrary.setCurrentSong(nextSong);
+                //mMusicLibrary.setCurrentSong(nextSong);
                 // get current song provides the song at the current position so this works for both
-                onPlayFromMediaId(mMusicLibrary.getCurrentSong().getData(), new Bundle());
+                onPlayFromMediaId(nextSong.getData(), new Bundle());
             } else {
                 Log.d(TAG, "onSkipToNext: nextSong was null");
                 onStop();
