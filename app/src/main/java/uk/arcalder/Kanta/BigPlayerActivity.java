@@ -106,7 +106,6 @@ public class BigPlayerActivity extends AppCompatActivity implements
                     return;
                 }
 
-                updatePlayer();
 
                 switch( state.getState() ) {
                     case PlaybackStateCompat.STATE_PLAYING: {
@@ -131,8 +130,10 @@ public class BigPlayerActivity extends AppCompatActivity implements
                         break;
                     default:
                         finish();
+                        return;
                 }
 
+                updatePlayer();
             }
 
             @Override
@@ -153,9 +154,10 @@ public class BigPlayerActivity extends AppCompatActivity implements
 
 
         public void updatePlayer(){
+            try {
             bigSongTitle.setText(MusicLibrary.getInstance().getCurrentSong().getTitle());
             bigSongArtistAlbum.setText(String.format("%s / %s", MusicLibrary.getInstance().getCurrentSong().getArtist(), MusicLibrary.getInstance().getCurrentSong().getAlbum()));
-
+            } catch (Exception e){}
             try {
                 File image = new File(MusicLibrary.getInstance().getCurrentSong().getArt());
                 Picasso.get().load(image).fit().centerCrop().into(bigAlbumArt);

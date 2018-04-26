@@ -175,23 +175,9 @@ public class MainActivity extends AppCompatActivity
 
         // DO NOT ADD THESE FRAGMENTS TO BACKSTACK (HOURS WASTED HERE)
 
-        FragmentManager fragMan = getSupportFragmentManager();
-        FragmentTransaction fragTrans = fragMan.beginTransaction();
-        Bundle fragArgs = new Bundle();
-
         // --------------------------Get Permissions if no permissions------------------------------
 
-        getPermission(Manifest.permission.WAKE_LOCK, 234);
         getPermission(Manifest.permission.READ_EXTERNAL_STORAGE, 123);
-
-        if(MusicLibrary.getInstance().hasPermission() && (fm.findFragmentByTag("TITLE_HOME") == null || fm.findFragmentByTag("CONTAINER_HOME") == null)) {
-            TitlebarFragment titlebarFragment = new TitlebarFragment();
-            fragArgs.putString("TITLE", "HOME");
-            titlebarFragment.setArguments(fragArgs);
-            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_HOME");
-            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_HOME");
-            fragTrans.commit();
-        }
 
         // --------------------------Connect to Music Player Service--------------------------------
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MusicPlayerService.class),
@@ -206,6 +192,24 @@ public class MainActivity extends AppCompatActivity
     }
 
     // --------------------------Handle Permissions "Elegantly"-------------------------------------
+
+
+    public void firstFragments(){
+
+        FragmentManager fragMan = getSupportFragmentManager();
+        FragmentTransaction fragTrans = fragMan.beginTransaction();
+        Bundle fragArgs = new Bundle();
+
+
+        if(MusicLibrary.getInstance().hasPermission() && (fragMan.findFragmentByTag("TITLE_HOME") == null || fragMan.findFragmentByTag("CONTAINER_HOME") == null)) {
+            TitlebarFragment titlebarFragment = new TitlebarFragment();
+            fragArgs.putString("TITLE", "HOME");
+            titlebarFragment.setArguments(fragArgs);
+            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_HOME");
+            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_HOME");
+            fragTrans.commit();
+        }
+    }
 
     public void getPermission(String Permission, int requestCode){
 
@@ -228,13 +232,12 @@ public class MainActivity extends AppCompatActivity
 
         } else {
             // Permission has already been granted
+            firstFragments();
             MusicLibrary.getInstance().setHasPermission(true);
         }
     }
 
-    public void PermissionBlock(){
 
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
@@ -252,6 +255,7 @@ public class MainActivity extends AppCompatActivity
             // permission was granted, yay! Do the
             // contacts-related task you need to do.
             MusicLibrary.getInstance().setHasPermission(true);
+            firstFragments();
 
         } else {
 
@@ -260,15 +264,6 @@ public class MainActivity extends AppCompatActivity
             // permission denied, boo! Disable the
             // functionality that depends on this permission.
             MusicLibrary.getInstance().setHasPermission(false);
-
-            TitlebarFragment titlebarFragment = new TitlebarFragment();
-            fragArgs.putString("TITLE", "PERMISSION ERROR");
-
-            // Replace default fragment with the 'no perms' fragment
-            titlebarFragment.setArguments(fragArgs);
-            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_PERMISSION_ERROR");
-            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_PERMISSION");
-            fragTrans.commit();
 
         }
 
@@ -343,7 +338,7 @@ public class MainActivity extends AppCompatActivity
     private void miniPlayerFragment(Boolean isPlaying, boolean show) {
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        if (show) {
+        if (show && MusicLibrary.getInstance().hasPermission() && null != mMusicLibrary.getCurrentSong()) {
             Log.d(TAG, "miniPlayerFragment: show");
             mMiniPlayerFragment = new MiniPlayerFragment();
             Bundle bundle = new Bundle();
