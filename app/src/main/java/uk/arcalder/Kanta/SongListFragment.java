@@ -205,7 +205,9 @@ public class SongListFragment extends Fragment {
                     mMusicLibrary.setCurrent_position(position);
                     mSongListFragmentCallback.playSong();
                 } else {
-                    mSongListFragmentCallback.PlayQueueSong();
+                    mMusicLibrary.setCurrentSong(songList.get(position));
+                    mMusicLibrary.removeSongFromQueue(position);
+                    mSongListFragmentCallback.playSong();
                     mAdapter.notifyItemRemoved(position);
                     // Can't set playset to queue else bad things happen
 //                    mMusicLibrary.setCurrentSong(songList.get(position));
