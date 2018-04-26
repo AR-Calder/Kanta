@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -30,7 +31,8 @@ public class MainActivity extends AppCompatActivity
             SongListFragment.onSongListFragmentInteractionListener,
             ArtistListFragment.onArtistListFragmentInteractionListener,
             AlbumListFragment.onAlbumListFragmentInteractionListener,
-            MiniPlayerFragment.onMiniPlayerPlayPauseClickListener{
+            MiniPlayerFragment.onMiniPlayerPlayPauseClickListener,
+            FragmentManager.OnBackStackChangedListener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
 
@@ -179,16 +181,17 @@ public class MainActivity extends AppCompatActivity
 
         // --------------------------Get Permissions if no permissions------------------------------
 
-        getPermission(Manifest.permission.WAKE_LOCK);
-        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        getPermission(Manifest.permission.WAKE_LOCK, 234);
+        getPermission(Manifest.permission.READ_EXTERNAL_STORAGE, 123);
 
-        TitlebarFragment titlebarFragment = new TitlebarFragment();
-        fragArgs.putString("TITLE", "HOME");
-
-        titlebarFragment.setArguments(fragArgs);
-        fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment);
-        fragTrans.replace(R.id.fragment_container_main, new SongListFragment());
-        fragTrans.commit();
+        if(MusicLibrary.getInstance().hasPermission() && (fm.findFragmentByTag("TITLE_HOME") == null || fm.findFragmentByTag("CONTAINER_HOME") == null)) {
+            TitlebarFragment titlebarFragment = new TitlebarFragment();
+            fragArgs.putString("TITLE", "HOME");
+            titlebarFragment.setArguments(fragArgs);
+            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_HOME");
+            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_HOME");
+            fragTrans.commit();
+        }
 
         // --------------------------Connect to Music Player Service--------------------------------
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MusicPlayerService.class),
@@ -204,7 +207,7 @@ public class MainActivity extends AppCompatActivity
 
     // --------------------------Handle Permissions "Elegantly"-------------------------------------
 
-    public void getPermission(String Permission){
+    public void getPermission(String Permission, int requestCode){
 
         Log.i(TAG, "getPermission: Check if have permissions: " + "READ_EXTERNAL_STORAGE");
         // Request permissions
@@ -212,47 +215,67 @@ public class MainActivity extends AppCompatActivity
                 != PackageManager.PERMISSION_GRANTED) {
 
             Log.d(TAG, "getPermission: Permission not granted");
-            // Permission is not granted so,
-            // request the permission
+            // Permission is not granted so set false for now
+            MusicLibrary.getInstance().setHasPermission(false);
+
+            // but request the permission
             ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{Permission},
-                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE); // Once again shite documentation
+                    requestCode); // Once again shite documentation
 
             // The callback method gets the result of the request.
             Log.i(TAG, "getPermission: Requesting Permission");
 
         } else {
             // Permission has already been granted
-            MusicLibrary.getInstance().setHasPermission(true, getApplicationContext());
+            MusicLibrary.getInstance().setHasPermission(true);
         }
     }
 
+    public void PermissionBlock(){
+
+    }
+
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        // Change fragments based on available options
+        FragmentManager fragMan = getSupportFragmentManager();
+        FragmentTransaction fragTrans = fragMan.beginTransaction();
+        Bundle fragArgs = new Bundle();
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                    mMusicLibrary.setHasPermission(true, getApplicationContext());
+        // If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                } else {
+            // --------------------------HAS PERMISSIONS------------------------------
 
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    Toast.makeText(getApplicationContext(), (CharSequence)"PERMISSION DENIED, requires\nREAD_EXTERNAL_STORAGE to continue!", Toast.LENGTH_LONG).show();
-                    mMusicLibrary.setHasPermission(false, getApplicationContext());
-                }
-                return;
-            }
+            // permission was granted, yay! Do the
+            // contacts-related task you need to do.
+            MusicLibrary.getInstance().setHasPermission(true);
 
-            // other 'case' lines to check for other
-            // permissions this app might request.
+        } else {
+
+            // --------------------------NO PERMISSIONS------------------------------
+
+            // permission denied, boo! Disable the
+            // functionality that depends on this permission.
+            MusicLibrary.getInstance().setHasPermission(false);
+
+            TitlebarFragment titlebarFragment = new TitlebarFragment();
+            fragArgs.putString("TITLE", "PERMISSION ERROR");
+
+            // Replace default fragment with the 'no perms' fragment
+            titlebarFragment.setArguments(fragArgs);
+            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_PERMISSION_ERROR");
+            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_PERMISSION");
+            fragTrans.commit();
+
         }
+
+
+        // other 'case' lines to check for other
+        // permissions this app might request.
+
     }
     // -----------------------------------Life Cycle------------------------------------------------
 
@@ -276,23 +299,39 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "onStop Called");
+        Log.d(TAG, "onStop");
         // (see "stay in sync with the MediaSession")
         if (MediaControllerCompat.getMediaController(MainActivity.this) != null) {
             MediaControllerCompat.getMediaController(MainActivity.this).unregisterCallback(mMediaControllerCompatCallback);
         }
         mMediaBrowserCompat.disconnect();
+        super.onStop();
     }
+
+    private int doubleTapToExit = 2;
 
     @Override
     public void onBackPressed() {
-        int levels = getSupportFragmentManager().getBackStackEntryCount();
-        if (levels > -1) {
-            super.onBackPressed();
-        } else{
-            this.moveTaskToBack(true);
+        Log.d(TAG, "onBackPressed");
+        getSupportFragmentManager().popBackStack();
+        if (doubleTapToExit < 1) {
+            finishAndRemoveTask();
+
+        } else if (doubleTapToExit < 2){
+            Toast.makeText(getApplicationContext(), "Triple Tap to exit", Toast.LENGTH_SHORT).show();
         }
+
+
+        this.doubleTapToExit--;
+
+        new Handler().postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                doubleTapToExit = 2;
+            }
+        }, 450);
+
 
     }
 
@@ -332,6 +371,11 @@ public class MainActivity extends AppCompatActivity
         TitlebarFragment titlebarFragment = new TitlebarFragment();
         Bundle fargs = new Bundle();
         Bundle targs = new Bundle();
+
+        if (!MusicLibrary.getInstance().hasPermission()){
+            getPermission(Manifest.permission.READ_EXTERNAL_STORAGE, 123);
+            return true;
+        }
 
         switch (item.getItemId()) {
             case R.id.navigation_home:
@@ -520,5 +564,13 @@ public class MainActivity extends AppCompatActivity
         ft.addToBackStack(null);
         ft.commit();
     }
+
+
+
+    @Override
+    public void onBackStackChanged() {
+
+    }
+
 
 }

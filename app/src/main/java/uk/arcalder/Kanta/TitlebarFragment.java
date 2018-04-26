@@ -16,7 +16,7 @@ import android.widget.TextView;
  * Created by Zynch on 14/03/2018.
  */
 
-public class TitlebarFragment extends Fragment implements View.OnClickListener {
+public class TitlebarFragment extends Fragment{
     View view;
 
     private static final String TAG = TitlebarFragment.class.getSimpleName();
@@ -27,8 +27,6 @@ public class TitlebarFragment extends Fragment implements View.OnClickListener {
         Log.d(TAG, "onCreateView");
 
         view = inflater.inflate(R.layout.fragment_titlebar, null);
-        ImageButton settingsButton = (ImageButton) view.findViewById(R.id.btn_settings);
-        settingsButton.setOnClickListener(this);
 
         String title_string = null;
         String home_String = null;
@@ -53,13 +51,4 @@ public class TitlebarFragment extends Fragment implements View.OnClickListener {
         super.onActivityCreated(savedInstanceState);
     }
 
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.btn_settings:
-                Intent i = new Intent(this.getActivity(), SettingsActivity.class);
-                startActivity(i);
-                break;
-        }
-    }
 }

@@ -79,7 +79,7 @@ public class ArtistListAdapter extends RecyclerView.Adapter<ArtistListAdapter.Vi
             }
         } else {
             try {
-                Picasso.get().load(R.drawable.default_album).fit().centerCrop().into(holder.artistListArtView);
+                Picasso.get().load(R.drawable.default_artist).fit().centerCrop().into(holder.artistListArtView);
             } catch (IllegalArgumentException iae){
                 Log.d(TAG, "Picasso tried and failed to load album art");
             }

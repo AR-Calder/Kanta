@@ -238,6 +238,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onStop() {
+            Log.d(TAG, "onStop called");
             releaseAudioFocus();
             setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
             stopSelf();
@@ -624,7 +625,6 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         // Get current song
         Song current_song = mMusicLibrary.getCurrentSong();
-
 
         mPlaybackState = mMediaController.getPlaybackState();
 

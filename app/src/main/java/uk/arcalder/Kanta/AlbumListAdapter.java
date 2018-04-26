@@ -91,7 +91,7 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.View
             }
         } else {
             try {
-                Picasso.get().load(R.drawable.default_artist).fit().centerCrop().into(holder.albumListArtView);
+                Picasso.get().load(R.drawable.default_album).fit().centerCrop().into(holder.albumListArtView);
             } catch (IllegalArgumentException iae){
                 Log.d(TAG, "Picasso tried and failed to load album art");
             }

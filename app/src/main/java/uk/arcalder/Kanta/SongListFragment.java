@@ -198,13 +198,13 @@ public class SongListFragment extends Fragment {
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
                 if (!swipeToRemove) {
-                    mMusicLibrary.setCurrent_position(position);
                     mMusicLibrary.setSongs(songList);
+                    mMusicLibrary.setCurrent_position(position);
                     mSongListFragmentCallback.playSong();
                 } else {
                     // Can't set playset to queue else bad things happen
 //                    mMusicLibrary.setCurrentSong(songList.get(position));
-//                    mSongListFragmentCallback.
+//                    mSongListFragmentCallback.playSong();
                 }
             }
         }));
@@ -234,6 +234,10 @@ public class SongListFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+    }
+
+    public void onPlaybackStateChange(){
+        mAdapter.notifyDataSetChanged();
     }
 
     // -----------------------------ALL SONG QUERY STUFFS---------------------------------

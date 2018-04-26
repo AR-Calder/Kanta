@@ -34,6 +34,8 @@ public class MusicLibrary {
 
     public void setCurrent_position(int position) {
         current_position = position;
+        setCurrentSong(getSongByIndexFromSongs(current_position));
+
     }
 
     // TODO !!-- Move ALL this stuff into individual fragments --!!
@@ -41,7 +43,7 @@ public class MusicLibrary {
     // Thought I could get off without notifysetchanged but no...
 
 
-    public void setHasPermission(boolean permissionState, Context context){
+    public void setHasPermission(boolean permissionState){
         hasPermission = permissionState;
 
         if (!permissionState) {
@@ -49,6 +51,10 @@ public class MusicLibrary {
         } else {
             Log.d(TAG, "hasPermissions:");
         }
+    }
+
+    public boolean hasPermission() {
+        return hasPermission;
     }
 
     // -------------------------Songs------------------------------

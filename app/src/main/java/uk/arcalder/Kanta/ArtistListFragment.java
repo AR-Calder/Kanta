@@ -256,7 +256,13 @@ public class ArtistListFragment extends Fragment {
                                 MediaStore.Audio.Albums.ARTIST + "='"+artist.getName()+"'", // This is pretty shitty but there is no id field here :/
                                 null,
                                 MediaStore.Audio.Albums.DEFAULT_SORT_ORDER)){
-                            artCursor.moveToFirst();
+                            do {
+                                try {
+                                    artCursor.moveToNext();
+                                } catch (Exception e){
+                                    break;
+                                }
+                            } while("".equals(artCursor.getString(artCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART))) || null == artCursor.getString(artCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART)));
                             artist.setArt(artCursor.getString(artCursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART)));
                         } catch (NullPointerException npe){
                             Log.e(TAG, "Could not get art: ");
