@@ -2,11 +2,14 @@ package uk.arcalder.Kanta;
 
 import android.Manifest;
 import android.content.ComponentName;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -148,6 +151,7 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate Called");
 
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -201,7 +205,19 @@ public class MainActivity extends AppCompatActivity
         Bundle fragArgs = new Bundle();
 
 
+
         if(MusicLibrary.getInstance().hasPermission() && (fragMan.findFragmentByTag("TITLE_HOME") == null || fragMan.findFragmentByTag("CONTAINER_HOME") == null)) {
+
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+            SharedPreferences.Editor editor = preferences.edit();
+
+            boolean first_run = !preferences.contains("FIRST_RUN");
+            if(first_run)
+            {
+                Toast.makeText(this, "Thanks for trying out Kanta", Toast.LENGTH_SHORT).show();
+                editor.putString("FIRST_RUN", "FIRST_RUN").apply();
+            }
+
             TitlebarFragment titlebarFragment = new TitlebarFragment();
             fragArgs.putString("TITLE", "HOME");
             titlebarFragment.setArguments(fragArgs);
