@@ -37,7 +37,7 @@ public class AlbumListFragment extends Fragment {
 
     // Interface for onInteraction callback
     public interface onAlbumListFragmentInteractionListener {
-        void createAlbumViewFragmentFromAlbumID(String album_id, String name);
+        void createSongListFragmentFromAlbumID(String album_id, String name);
     }
 
     // view, adapter & manager
@@ -162,7 +162,7 @@ public class AlbumListFragment extends Fragment {
             public void onClick(View view, int position) {
                 Log.d(TAG, "onClick");
                 Album album = albumList.get(position);
-                mAlbumListFragmentCallback.createAlbumViewFragmentFromAlbumID(album.getId(), album.getName());
+                mAlbumListFragmentCallback.createSongListFragmentFromAlbumID(album.getId(), album.getName());
             }
 
         }));

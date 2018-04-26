@@ -37,6 +37,7 @@ public class SongListFragment extends Fragment {
 
     // Interface for onInteraction callback
     public interface onSongListFragmentInteractionListener {
+        void PlayQueueSong();
         void playSongFromPlaysetIndex(int position);
         void playSong();
     }
@@ -49,7 +50,7 @@ public class SongListFragment extends Fragment {
     private RecyclerView.LayoutManager mLayoutManager;
 
     // Song content access
-    private static ArrayList<Song> songList = new ArrayList<>();
+    private ArrayList<Song> songList = new ArrayList<>();
     MusicLibrary mMusicLibrary;
 
     // Fragment data trackers
@@ -79,7 +80,6 @@ public class SongListFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        Log.d(TAG, "onStart");
         try {
             mSongListFragmentCallback = (onSongListFragmentInteractionListener) getActivity();
         } catch (ClassCastException e){
@@ -87,9 +87,9 @@ public class SongListFragment extends Fragment {
                     + " must implement OnFragmentInteractionListener");
         }
 
-
-
     }
+
+    private String listType = "";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -114,19 +114,23 @@ public class SongListFragment extends Fragment {
         // get songs by album id or get all songs
         if ("QUEUE".equals(parentType)){
             Log.d(TAG, "onCreate: getSongsFrom Queue");
+            listType = "QUEUE";
             swipeToRemove = true;
             getSongsFromQueue();
 
         } else  if ("PLAYSET".equals(parentType)){
             Log.d(TAG, "onCreate: getSongsFrom PLAYSET");
+            listType = "PLAYSET";
             getSongsFromPlayset();
 
-        }else if ((null != parentType && !"".equals(parentType) && null != AlbumId && !"".equals(AlbumId))) {
+        }else if (("ALBUM".equals(parentType) && null != AlbumId && !"".equals(AlbumId))) {
             Log.d(TAG, "onCreate: getSongsFrom " + parentType + " ByAlbumId (" + AlbumId + ")");
+            listType = "ALBUM";
             getSongsByAlbumId(AlbumId);
 
         } else{
             Log.d(TAG, "onCreate: getAllSongs");
+            listType = "ALL SONGS";
             getAllSongs();
         }
 
@@ -141,8 +145,7 @@ public class SongListFragment extends Fragment {
 
     @Override
     public void onResume() {
-        Log.d(TAG, "onResume");
-
+        Log.d(TAG, "onResume: type = " + listType);
         super.onResume();
     }
 
@@ -166,7 +169,7 @@ public class SongListFragment extends Fragment {
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        Log.d(TAG, "onCreateView: setAdapter to playSet");
+        Log.d(TAG, "onCreateView: setAdapter");
         // NOTE: mAdapter is initialized in onCreate
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -202,6 +205,8 @@ public class SongListFragment extends Fragment {
                     mMusicLibrary.setCurrent_position(position);
                     mSongListFragmentCallback.playSong();
                 } else {
+                    mSongListFragmentCallback.PlayQueueSong();
+                    mAdapter.notifyItemRemoved(position);
                     // Can't set playset to queue else bad things happen
 //                    mMusicLibrary.setCurrentSong(songList.get(position));
 //                    mSongListFragmentCallback.playSong();

@@ -360,6 +360,11 @@ public class BigPlayerActivity extends AppCompatActivity implements
     }
 
     @Override
+    public void PlayQueueSong() {
+        Log.d(TAG, "PlayQueueSong Called");
+    }
+
+    @Override
     public void playSongFromPlaysetIndex(int position) {
         Log.d(TAG, "playSongFromPlaysetIndex Called");
     }
