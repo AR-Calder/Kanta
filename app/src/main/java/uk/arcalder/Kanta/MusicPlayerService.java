@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -22,10 +23,12 @@ import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -35,6 +38,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,6 +55,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     // TODO JUST CTRL-F For NOTIFICATION
 
     public static final String TAG = MusicPlayerService.class.getSimpleName();
+
+    public static final String CUSTOM_ACTION = "UPDATE";
 
     // Channel ID for Oreo notification channels
     private static final String CHANNEL_ID  = "uk.arcalder.kanta.musicplayerservice";
@@ -99,6 +105,10 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private boolean mPlayOnFocusGain = false;
     // Audio Manager
     private AudioManager mAudioManager;
+
+    // Broadcast manager to update queue and mini player
+    LocalBroadcastManager mLocalBroadcastManager;
+
 
     // Register receiver for headset unplugged
     private BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
@@ -183,6 +193,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 currentNotification = buildNotification();
                 mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
             }
+            // Notify fragments
+
         }
 
         @Override
@@ -221,6 +233,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             }
 //                //afd.close();
 //                initMediaSessionMetadata();
+            // Notify fragments
+            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
         }
 
         @Override
@@ -229,6 +243,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 //            if( COMMAND_EXAMPLE.equalsIgnoreCase(command) ) {
 //                //Custom command here
 //            }
+            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
         }
 
         @Override
@@ -248,6 +263,9 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
             // Remove notifications
             stopForeground(true);
+
+            // Notify fragments
+            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onStop();
 
         }
@@ -265,7 +283,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 onStop();
             }
 
-
+            // Notify fragments
+            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onSkipToNext();
         }
 
@@ -281,6 +300,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 onStop();
             }
 
+            // Notify fragments
+            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onSkipToPrevious();
         }
 
@@ -291,7 +312,11 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     public void onCreate() {
         super.onCreate();
 
+        // --------------------------External Communications----------------------
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
+
+        // -------------------------Media Button Receivers------------------------
         mPrevAction =
                 new NotificationCompat.Action.Builder(
                         android.R.drawable.ic_media_previous,
@@ -324,6 +349,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                                 this,
                                 PlaybackState.ACTION_PLAY)).build();
 
+        //-------------------------------Main init-------------------------------------------
         mMusicLibrary = MusicLibrary.getInstance();
         initMediaPlayer();
         initMediaSession();
@@ -338,6 +364,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         Log.d(TAG, "onCreate: set default_playback");
         setMediaPlaybackState(default_playback);
 
+        //-----------------------------Init Notifications------------------------------------
         mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
 
         Log.d(TAG, "onCreate MusicService creating MediaSession, MediaPlayer, and MediaNotificationManager");
@@ -381,7 +408,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         // TODO if for some reason the app is closed before the library is able to load
         // Seemed like a good idea but crashes
         // "Attempt to invoke virtual method 'boolean uk.arcalder.Kanta.SongList$AsyncInitSongs.isCancelled()' on a null object reference"
-        // mSongList.cancelInitSongs();
+        // mSongList.cancelInitSongs()
 
         // Want to kill service if user wishes to close it.
         Log.d(TAG, "onTaskRemoved: stopSelf()");
@@ -565,7 +592,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             case AudioManager.AUDIOFOCUS_LOSS:
                 // Lost audio focus, possibly "permanently"
                 if (mMediaPlayer.isPlaying()){
-                    mMediaController.getTransportControls().stop();
+                    mMediaController.getTransportControls().pause(); // should really be a on stop but I don't have seek to implemented
                 }
                 // Update State
                 mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
@@ -631,7 +658,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         // Get Album Art
 
 
-        Bitmap albumArt = (null != current_song.getArt() && !"".equals(current_song.getArt())) ? BitmapFactory.decodeFile(current_song.getArt()) : BitmapFactory.decodeResource(getResources(), R.drawable.ic_sync_black_24dp);;
+        Bitmap albumArt = (null != current_song.getArt() && !"".equals(current_song.getArt())) ? BitmapFactory.decodeFile(current_song.getArt()) : BitmapFactory.decodeResource(getResources(), R.drawable.default_album);
 
         Log.d(TAG, "buildNotification: mPlaybackState.getActions is " + mPlaybackState);
 
@@ -662,7 +689,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 .setContentIntent(createContentIntent(current_song))
                 .setColor(ContextCompat.getColor(this, R.color.colorAccent))
                 .setLargeIcon(albumArt)
-                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setSmallIcon((mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING) ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play)
                 // Title - Usually Song name.
                 .setContentTitle(current_song.getTitle())
                 // Subtitle - Usually Artist name.

@@ -221,8 +221,8 @@ public class MainActivity extends AppCompatActivity
             TitlebarFragment titlebarFragment = new TitlebarFragment();
             fragArgs.putString("TITLE", "HOME");
             titlebarFragment.setArguments(fragArgs);
-            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment);
-            fragTrans.replace(R.id.fragment_container_main, new SongListFragment());
+            fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment, "TITLE_HOME");
+            fragTrans.replace(R.id.fragment_container_main, new SongListFragment(), "CONTAINER_HOME");
             fragTrans.commit();
         }
     }
@@ -301,6 +301,10 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
+        // Update just incase it changed while we were away
+        if (null != mMediaControllerCompat) {
+            currentPlaybackState = mMediaControllerCompat.getPlaybackState().getState();
+        }
         Log.d(TAG, "onResume Called");
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         miniPlayerFragment((currentPlaybackState == PlaybackStateCompat.STATE_PLAYING),
@@ -330,39 +334,6 @@ public class MainActivity extends AppCompatActivity
 
         } else if (doubleTapToExit < 2){
             Toast.makeText(getApplicationContext(), "Triple Tap to exit", Toast.LENGTH_SHORT).show();
-
-        } else if (doubleTapToExit < 3 && getSupportFragmentManager().getBackStackEntryCount() <= 1) {
-                Log.d(TAG, "onBackPressed: backStack <= 1");
-            //~v~ TODO 26/04/18 this is not a fix for the issue, just a dirty patch ~v~
-            FragmentManager fm = getSupportFragmentManager();
-            FragmentTransaction ft = fm.beginTransaction();
-            TitlebarFragment titlebarFragment = new TitlebarFragment();
-            Bundle fargs = new Bundle();
-            Bundle targs = new Bundle();
-            ft = fm.beginTransaction();
-            // Create default song fragment (no args)
-            SongListFragment songListFragment = new SongListFragment();
-            songListFragment.setArguments(fargs);
-
-            // If set, and the name or ID of a back stack entry has been supplied,
-            // then all matching entries will be consumed until one that doesn't match is
-            // found or the bottom of the stack is reached.
-            fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-
-            // Replace (or create) a fragment where in a container.
-            ft.replace(R.id.fragment_container_main, songListFragment);
-            // Setup title bar
-            targs.putString("TITLE", "HOME");
-
-            // Since this is always updated do it here
-            titlebarFragment.setArguments(targs);
-            ft.replace(R.id.fragment_container_toolbar, titlebarFragment);
-            ft.addToBackStack(null);
-            ft.commit();
-
-            //~^~ TODO 26/04/18 this is not a fix for the issue, just a dirty patch ~^~
-
-
         }
 
         this.doubleTapToExit--;
@@ -371,8 +342,6 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void run() {
-
-
                 doubleTapToExit = 2;
             }
         }, 450);
@@ -432,7 +401,7 @@ public class MainActivity extends AppCompatActivity
                 // If set, and the name or ID of a back stack entry has been supplied,
                 // then all matching entries will be consumed until one that doesn't match is
                 // found or the bottom of the stack is reached.
-                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, songListFragment);
@@ -449,7 +418,7 @@ public class MainActivity extends AppCompatActivity
                 // If set, and the name or ID of a back stack entry has been supplied,
                 // then all matching entries will be consumed until one that doesn't match is
                 // found or the bottom of the stack is reached.
-                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, artistListFragment);
@@ -468,7 +437,7 @@ public class MainActivity extends AppCompatActivity
                 // If set, and the name or ID of a back stack entry has been supplied,
                 // then all matching entries will be consumed until one that doesn't match is
                 // found or the bottom of the stack is reached.
-                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, PlaySetSongListFragment);
@@ -485,7 +454,7 @@ public class MainActivity extends AppCompatActivity
                 // If set, and the name or ID of a back stack entry has been supplied,
                 // then all matching entries will be consumed until one that doesn't match is
                 // found or the bottom of the stack is reached.
-                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, albumListFragment);
@@ -503,7 +472,7 @@ public class MainActivity extends AppCompatActivity
                 // If set, and the name or ID of a back stack entry has been supplied,
                 // then all matching entries will be consumed until one that doesn't match is
                 // found or the bottom of the stack is reached.
-                fm.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
                 // Replace (or create) a fragment where in a container.
                 ft.replace(R.id.fragment_container_main, queueSongListFragment);

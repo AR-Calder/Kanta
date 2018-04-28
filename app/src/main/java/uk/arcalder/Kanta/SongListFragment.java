@@ -1,14 +1,18 @@
 package uk.arcalder.Kanta;
 
 
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -32,6 +36,7 @@ public class SongListFragment extends Fragment {
 
     // Tag for debug
     private static final String TAG = SongListFragment.class.getSimpleName();
+    public static final String CUSTOM_ACTION = "UPDATE";
 
     private onSongListFragmentInteractionListener mSongListFragmentCallback;
 
@@ -46,7 +51,7 @@ public class SongListFragment extends Fragment {
 
     // view, adapter & manager
     private RecyclerView mRecyclerView;
-    private static SongListAdapter mAdapter;
+    private SongListAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
     // Song content access
@@ -104,6 +109,9 @@ public class SongListFragment extends Fragment {
         mMusicLibrary = MusicLibrary.getInstance();
 
         Bundle args = getArguments();
+
+        mAdapter = new SongListAdapter(songList);
+
         try {
             parentType = args.getString(bundleParentType);
             AlbumId = args.getString(bundleArgsAlbumId);
@@ -118,7 +126,7 @@ public class SongListFragment extends Fragment {
             swipeToRemove = true;
             getSongsFromQueue();
 
-        } else  if ("PLAYSET".equals(parentType)){
+        } else if ("PLAYSET".equals(parentType)){
             Log.d(TAG, "onCreate: getSongsFrom PLAYSET");
             listType = "PLAYSET";
             getSongsFromPlayset();
@@ -134,7 +142,7 @@ public class SongListFragment extends Fragment {
             getAllSongs();
         }
 
-        mAdapter = new SongListAdapter(songList);
+
 
         //Retain Fragment to prevent unnecessary recreation
         //setRetainInstance(true);
@@ -146,7 +154,28 @@ public class SongListFragment extends Fragment {
     @Override
     public void onResume() {
         Log.d(TAG, "onResume: type = " + listType);
+
+        if ("QUEUE".equals(listType)) {
+            songList.clear();
+            songList.addAll(MusicLibrary.getInstance().getSongQueue());
+            mAdapter.notifyDataSetChanged();
+        }
+
         super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (isVisibleToUser) {
+            //Write down your refresh code here, it will call every time user come to this fragment.
+            //If you are using listview with custom adapter, just call notifyDataSetChanged().
+        }
     }
 
     @Nullable
@@ -182,7 +211,8 @@ public class SongListFragment extends Fragment {
                     Log.d(TAG, "onLeftSwipe: remove song from queue");
                     Toast.makeText(getActivity(), "Removed " + songList.get(position).getTitle() + " from queue", Toast.LENGTH_SHORT).show();
                     mMusicLibrary.removeSongFromQueue(position);
-                    mAdapter.notifyItemRemoved(position);
+                    songList.remove(position);
+                    mAdapter.notifyDataSetChanged();
                 }
             }
 
@@ -206,9 +236,10 @@ public class SongListFragment extends Fragment {
                     mSongListFragmentCallback.playSong();
                 } else {
                     mMusicLibrary.setCurrentSong(songList.get(position));
-                    mMusicLibrary.removeSongFromQueue(position);
                     mSongListFragmentCallback.playSong();
-                    mAdapter.notifyItemRemoved(position);
+                    mMusicLibrary.removeSongFromQueue(position);
+                    songList.remove(position);
+                    mAdapter.notifyDataSetChanged();
                     // Can't set playset to queue else bad things happen
 //                    mMusicLibrary.setCurrentSong(songList.get(position));
 //                    mSongListFragmentCallback.playSong();
@@ -300,12 +331,14 @@ public class SongListFragment extends Fragment {
     }
 
    public void getSongsFromQueue(){
-        songList = MusicLibrary.getInstance().getSongQueue();
+        songList.clear();   // keep the same object as your DataSet in adapter.
+        songList.addAll(MusicLibrary.getInstance().getSongQueue());
         mAdapter.notifyDataSetChanged();
    }
 
    public void getSongsFromPlayset(){
-       songList = MusicLibrary.getInstance().getSongs();
+       songList.clear();    // keep the same object as your DataSet in adapter.
+       songList.addAll(MusicLibrary.getInstance().getSongs());
        mAdapter.notifyDataSetChanged();
    }
 
@@ -324,14 +357,13 @@ public class SongListFragment extends Fragment {
         QueryHelper(songSELECTION);
     }
 
-    private static AsyncSongQuery asyncSongQuery;
+    private AsyncSongQuery asyncSongQuery;
 
     private class AsyncSongQuery extends AsyncTask<Cursor, Song, ArrayList<Song>> {
 
         @Override
         protected ArrayList<Song> doInBackground(Cursor... cursors) {
             Log.d(TAG, "AsyncSongQuery: doInBackground");
-            ArrayList<Song> asyncAlbums = new ArrayList<>();
 
             if(null != cursors[0] && cursors[0].getCount() > 0){
                 Cursor songCursor = cursors[0];
@@ -373,7 +405,7 @@ public class SongListFragment extends Fragment {
                     songCursor.close();
 
                 } catch (Exception e){
-                    Log.d(TAG, "AsyncSongQuery", e);
+                    Log.d(TAG, "AsyncSongQuery: Error:", e);
                     songCursor.close();
                 }
             }
@@ -386,6 +418,8 @@ public class SongListFragment extends Fragment {
             songList.add(values[0]);
             mAdapter.notifyItemInserted(mAdapter.addItem());
         }
+
+
     }
 
 }

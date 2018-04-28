@@ -18,15 +18,15 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MusicLibrary {
     private static final String TAG = MusicLibrary.class.getSimpleName();
 
-    public static Song currentSong;
+    public Song currentSong;
 
     // Song trackers
-    private static ArrayList<Song>  songQueue = new ArrayList<>();
-    public static ArrayList<Song>   playSet = new ArrayList<>();
+    private ArrayList<Song>  songQueue = new ArrayList<>();
+    public  ArrayList<Song>   playSet = new ArrayList<>();
 
-    public static boolean hasPermission = true;
+    public boolean hasPermission = true;
 
-    private static int current_position;
+    private int current_position;
 
     public int getCurrent_position() {
         return current_position;
@@ -106,7 +106,7 @@ public class MusicLibrary {
             }
         }
         // There is nothing to play
-        return null;
+        return currentSong;
     }
 
     public Song getNextSong(){
@@ -142,7 +142,7 @@ public class MusicLibrary {
         return songQueue.remove(0);
     }
 
-    public static ArrayList<Song> getSongQueue() {
+    public ArrayList<Song> getSongQueue() {
         return songQueue;
     }
 
@@ -156,7 +156,11 @@ public class MusicLibrary {
 
     // remove a song from the queue
     public void removeSongFromQueue(int position){
-        songQueue.remove(position);
+        try {
+            songQueue.remove(position);
+        }catch (IndexOutOfBoundsException iobe){
+            Log.e(TAG, "Song at position (" + position +") was out of bounds");
+        }
     }
 
     // clear queue

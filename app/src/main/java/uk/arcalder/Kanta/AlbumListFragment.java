@@ -267,7 +267,6 @@ public class AlbumListFragment extends Fragment {
         @Override
         protected ArrayList<Album> doInBackground(Cursor... cursors) {
             Log.d(TAG, "AsyncAlbumQuery: doInBackground");
-            ArrayList<Album> asyncAlbums = new ArrayList<>();
 
             if(null != cursors[0] && cursors[0].getCount() > 0){
                 Cursor songCursor = cursors[0];
