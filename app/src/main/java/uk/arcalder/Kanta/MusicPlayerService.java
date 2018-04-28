@@ -157,10 +157,13 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             //Should be started but sometimes not :s
             if(!isServiceStarted){
                 Log.d(TAG, "onPlay: Starting Service");
-                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
+                //startForegroundService(new Intent(getApplicationContext(), MusicPlayerService.class));
+                currentNotification = buildNotification();
+                Log.d(TAG, "------------------------------------------onPLAY create notification-------------------------------------------");
+                startForeground(NOTIFICATION_ID, currentNotification);
             }
 
-            if(mPlaybackState.getState() == PlaybackStateCompat.STATE_PAUSED) {  // If we are resuming something not trying to play an un-started song
+            if(mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {  // If we are resuming something not trying to play an un-started song
                 Log.d(TAG, "onPlay: Starting Player");
 
                 //Doesn't update itself
@@ -170,17 +173,21 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 initNoisyReceiver();
 
                 currentNotification = buildNotification();
-                mNotificationManager.notify(NOTIFICATION_ID, currentNotification);
+                Log.d(TAG, "------------------------------------------onPLAY Notify-------------------------------------------");
+                startForeground(NOTIFICATION_ID, currentNotification);
             }
 
 
 
-            super.onPlay();
+
+            //super.onPlay();
             // TODO NOTE: onPlay is really onResume/onNowPlaying, don't try to play songs here
+            Log.d(TAG, "------------------------------------------onPLAY Notified-------------------------------------------");
         }
 
         @Override
         public void onPause() {
+            Log.d(TAG, "------------------------------------------onPause-------------------------------------------");
             super.onPause();
 
             if( mMediaPlayer.isPlaying() ) {
@@ -200,6 +207,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onPlayFromMediaId(String data, Bundle extras) {
+            Log.d(TAG, "------------------------------------------onPlayFromMediaId-------------------------------------------");
             Log.d(TAG, "onPlayFromMediaId");
             super.onPlayFromMediaId(data, extras);
 
@@ -215,7 +223,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             //Should be started but sometimes not :s
             if(!isServiceStarted){
                 Log.d(TAG, "onPlayFromMediaId: Starting Service");
-                startService(new Intent(getApplicationContext(), MusicPlayerService.class));
+                startForegroundService(new Intent(getApplicationContext(), MusicPlayerService.class));
             }
 
             Log.d(TAG, "onPlayFromMediaId: data is " + data);
@@ -235,16 +243,20 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 //                //afd.close();
 //                initMediaSessionMetadata();
             // Notify fragments
-            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
+            //mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
         }
 
         @Override
         public void onCommand(String command, Bundle extras, ResultReceiver cb) {
+            Log.d(TAG, "------------------------------------------onCommand-------------------------------------------");
             super.onCommand(command, extras, cb);
 //            if( COMMAND_EXAMPLE.equalsIgnoreCase(command) ) {
 //                //Custom command here
 //            }
+
             mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
+            currentNotification = buildNotification();
+            startForeground(NOTIFICATION_ID, currentNotification);
         }
 
         @Override
@@ -254,6 +266,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onStop() {
+            Log.d(TAG, "------------------------------------------on STOP-------------------------------------------");
             Log.d(TAG, "onStop called");
             releaseAudioFocus();
             setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
@@ -266,13 +279,14 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             stopForeground(true);
 
             // Notify fragments
-            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
+            //mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onStop();
 
         }
 
         @Override
         public void onSkipToNext() {
+            Log.d(TAG, "------------------------------------------onSkipToNext-------------------------------------------");
             Song nextSong = mMusicLibrary.getNextSong(); // TODO GET NEXT SONG
             if (null != nextSong) {
                 Log.d(TAG, "onSkipToNext: nextSong is '" + nextSong.getTitle() + "'");
@@ -285,12 +299,13 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             }
 
             // Notify fragments
-            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
+            //mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onSkipToNext();
         }
 
         @Override
         public void onSkipToPrevious() {
+            Log.d(TAG, "------------------------------------------onSkipToPrevious-------------------------------------------");
             Song prevSong = mMusicLibrary.getPreviousSong(); // TODO GET PREV SONG
             if (null != prevSong) {
                 Log.d(TAG, "onSkipToPrevious: prevSong is '" + prevSong.getTitle() + "'");
@@ -302,7 +317,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             }
 
             // Notify fragments
-            mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
+            //mLocalBroadcastManager.sendBroadcast(new Intent("UPDATE"));
             super.onSkipToPrevious();
         }
 
@@ -311,6 +326,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onCreate() {
+        Log.d(TAG, "------------------------------------------onCreate-------------------------------------------");
         super.onCreate();
 
         // --------------------------External Communications----------------------
@@ -370,25 +386,27 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
         // Shite fix for shite issue
         //https://stackoverflow.com/questions/44425584/context-startforegroundservice-did-not-then-call-service-startforeground
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    CHANNEL_ID,
-                    NotificationManager.IMPORTANCE_MIN);
-
-            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
-
-            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("")
-                    .setContentText("").build();
-
-            startForeground(1, notification);
-        }
+//        if (Build.VERSION.SDK_INT >= 26) {
+//            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+//                    CHANNEL_ID,
+//                    NotificationManager.IMPORTANCE_MIN);
+//
+//            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
+//
+//            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+//                    .setContentTitle("")
+//                    .setContentText("").build();
+//
+//            startForeground(1, notification);
+//        }
 
         Log.d(TAG, "onCreate MusicService creating MediaSession, MediaPlayer, and MediaNotificationManager");
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "------------------------------------------onDestroy-------------------------------------------");
+
         Log.d(TAG, "onDestroy");
         releaseAudioFocus();
         removeNoisyReceiver();
@@ -397,16 +415,16 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
             mMediaPlayer.reset();
             Log.d(TAG, "onDestroy: mediaplayer.release()");
             mMediaPlayer.release();
-            mMediaPlayer = null;
+            //mMediaPlayer = null;
         }
         if (mMediaSession != null) {
             Log.d(TAG, "onDestroy: mediasession.release()");
             mMediaSession.release();
-            mMediaSession = null;
+            //mMediaSession = null;
         }
 
-        Log.d(TAG, "onDestroy: stop Foreground");
-        stopForeground(true);
+//        Log.d(TAG, "onDestroy: stop Foreground");
+//        stopForeground(true);
 
 
         //Log.d(TAG, "onDestroy: cancelInitSongs");
@@ -420,6 +438,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        Log.d(TAG, "------------------------------------------on TASK REMVOED-------------------------------------------");
         Log.d(TAG, "onTaskRemoved");
 
         // TODO if for some reason the app is closed before the library is able to load
@@ -437,6 +456,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void initMediaController() {
+        Log.d(TAG, "------------------------------------------initMediaController-------------------------------------------");
         try {
             mMediaController = new MediaControllerCompat(getApplicationContext(), mMediaSession.getSessionToken());
         } catch (Exception e) {
@@ -449,6 +469,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private static boolean isNoisyReceiverActive = false;
 
     private void initNoisyReceiver() {
+        Log.d(TAG, "------------------------------------------initNoisyReceiver-------------------------------------------");
         //Handles headphones coming unplugged. cannot be done through a manifest receiver
         IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         registerReceiver(mNoisyReceiver, filter);
@@ -456,6 +477,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void removeNoisyReceiver(){
+        Log.d(TAG, "------------------------------------------removeNoisyReceiver-------------------------------------------");
         if (isNoisyReceiverActive){
             Log.d(TAG, "removeNoisyReceiver: removing");
             unregisterReceiver(mNoisyReceiver);
@@ -467,6 +489,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void initMediaPlayer() {
+        Log.d(TAG, "------------------------------------------initMediaPlayer-------------------------------------------");
         mAudioManager = (mAudioManager == null) ? (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE) : mAudioManager;
         if ( mMediaPlayer == null) {
             mMediaPlayer = new MediaPlayer();
@@ -483,6 +506,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void initMediaSession() {
+        Log.d(TAG, "------------------------------------------initMediaSession-------------------------------------------");
         ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
         // Create a MediaSession
         mMediaSession = new MediaSessionCompat(getApplicationContext(), TAG);
@@ -525,23 +549,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaSession.setPlaybackState(playbackStateBuilder.build());
     }
 
-    private void initMediaSessionMetadata() {
-        MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
-        //Notification icon in card
-        metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-        metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-
-        //lock screen icon for pre lollipop
-        metadataBuilder.putBitmap(MediaMetadata.METADATA_KEY_ART, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-        metadataBuilder.putString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE, "Display Title");
-        metadataBuilder.putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE, "Display Subtitle");
-        metadataBuilder.putLong(MediaMetadata.METADATA_KEY_TRACK_NUMBER, 1);
-        metadataBuilder.putLong(MediaMetadata.METADATA_KEY_NUM_TRACKS, 1);
-
-        mMediaSession.setMetadata(metadataBuilder.build());
-    }
-
     private boolean getAudioFocus() {
+        Log.d(TAG, "------------------------------------------getAudioFocus-------------------------------------------");
         Log.d(TAG, "tryToGetAudioFocus");
         int result = mAudioManager.requestAudioFocus(mAudioFocusRequest);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -556,6 +565,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void releaseAudioFocus() {
+        Log.d(TAG, "------------------------------------------releaseAudioFocus-------------------------------------------");
         Log.d(TAG, "giveUpAudioFocus");
         if (mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest)
                 == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -569,6 +579,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onAudioFocusChange(int focusChange) {
+        Log.d(TAG, "------------------------------------------onAudioFocusChange-------------------------------------------");
         Log.d(TAG, "onAudioFocusChange. focusChange: "+ focusChange);
         switch (focusChange) {
             case AudioManager.AUDIOFOCUS_GAIN:
@@ -634,6 +645,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "------------------------------------------onStartCommand-------------------------------------------");
         Log.d(TAG, "onStartCommand");
         isServiceStarted = true;
         // TODO USE APP COMPAT EVERYTHING
@@ -645,6 +657,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
+        Log.d(TAG, "------------------------------------------onPrepared-------------------------------------------");
         Log.d(TAG, "onPrepared");
         mMediaSession.setActive(true);
         mediaPlayer.start();
@@ -656,7 +669,7 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
         ContextCompat.startForegroundService(this, intent);
 
         currentNotification = buildNotification();
-        this.startForeground(NOTIFICATION_ID, currentNotification);
+        startForeground(NOTIFICATION_ID, currentNotification);
     }
 
     // ------------------------------Notifications--------------------------------
@@ -664,6 +677,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
     private Notification currentNotification = null;
 
     private Notification buildNotification(){
+
+        Log.d(TAG, "------------------------------------------NOTIFICATION-------------------------------------------");
 
         Log.d(TAG, "Creating notification");
 
@@ -706,7 +721,8 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                 .setContentIntent(createContentIntent(current_song))
                 .setColor(ContextCompat.getColor(this, R.color.colorAccent))
                 .setLargeIcon(albumArt)
-                .setSmallIcon((mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING) ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play)
+                //.setSmallIcon((mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING) ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play)
+                .setSmallIcon(R.drawable.icons8musicalnotes24)
                 // Title - Usually Song name.
                 .setContentTitle(current_song.getTitle())
                 // Subtitle - Usually Artist name.
@@ -751,19 +767,21 @@ public class MusicPlayerService extends MediaBrowserServiceCompat implements Med
                         .setMediaSession(mMediaSession.getSessionToken())
                         .setShowActionsInCompactView(0, 1, 2));
 
-        if (null == mPlaybackState){
-            Log.d(TAG, "null == playbackState OR !notificationStarted");
-            // "Die die die"
-            this.stopForeground(true);
-        }
+//        if (null == mPlaybackState){
+//            Log.d(TAG, "null == playbackState OR !notificationStarted");
+//            // "Die die die"
+//            this.stopForeground(true);
+//        }
 
         Log.d(TAG, "createNotificationChannel: build");
 
+        Log.d(TAG, "-----------------------------------NOTIFICATION BUILT-------------------------------------------");
         return notificationBuilder.build();
     }
 
     // Set the notification's tap action
     private PendingIntent createContentIntent(Song song){
+        Log.d(TAG, "------------------------------------------createContentIntent-------------------------------------------");
         Intent openUI  = new Intent(this, MainActivity.class);
         // IF encountering problems return to the stack overflow post:
         // https://stackoverflow.com/questions/29321261/what-are-the-differences-between-flag-activity-reset-task-if-needed-and-flag-act
