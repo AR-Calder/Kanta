@@ -5,13 +5,12 @@ Kanta is a simple android music player that uses the mediaplayer service.
 Features
 ---------
   * Play music by album, artist or song
-  * Search for your favourite artists
-  * Add music from local storage or Google Drive
-  * Light and Dark themes
+  * Add music to a song queue
+  * Uses a crap tonne of fragments, so good as a working example
 
 Setup
 -------------
-Currently you will have to build the APK from source, this will change at some point. 
+Currently you will have to build the APK from source, this may change at some point. 
 
 Contribute
 -----------
@@ -37,10 +36,9 @@ TODO
 ----
 - If fragment of same type is already open do not open another - DONE
 - Setup Content Provider - DONE
-- Allow theme switching - IMPOSSIBLE (for now)
-- Get
-- Save settings
-- Add/move/remove songs from queue
+- Handle rotation properly - DONE
+- Maintain playset through queries
+- Add/move/remove songs from queue - DONE
 
 Authors
 -------
