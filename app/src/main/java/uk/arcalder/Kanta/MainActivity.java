@@ -151,7 +151,6 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate Called");
 
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -280,6 +279,15 @@ public class MainActivity extends AppCompatActivity
             // permission denied, boo! Disable the
             // functionality that depends on this permission.
             MusicLibrary.getInstance().setHasPermission(false);
+
+            if((fragMan.findFragmentByTag("TITLE_HOME") == null || fragMan.findFragmentByTag("CONTAINER_HOME") == null)) {
+                TitlebarFragment titlebarFragment = new TitlebarFragment();
+                fragArgs.putString("TITLE", "INSUFFICIENT PERMISSIONS");
+                titlebarFragment.setArguments(fragArgs);
+                fragTrans.replace(R.id.fragment_container_toolbar, titlebarFragment);
+                fragTrans.replace(R.id.fragment_container_main, new PermissionFragment());
+                fragTrans.commit();
+            }
 
         }
 
