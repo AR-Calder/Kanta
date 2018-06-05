@@ -2,6 +2,9 @@ Kanta
 =================
 Kanta is a simple android music player that uses the mediaplayer service.
 
+Screenshots can be found on my website:
+https://www.arcalder.uk/android-app-dev-kanta
+
 Features
 ---------
   * Play music by album, artist or song
@@ -28,9 +31,9 @@ License
 
 The project is licensed under the "I've not researched these enough to know" license.
 
-Bugs
+Issues
 -----
-- Doesn't actually play any music
+Built for api 27 - likely will not work with lower versions.
 
 TODO
 ----
